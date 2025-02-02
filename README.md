@@ -1,0 +1,3 @@
+- a.properties 是素数阶群的
+- a1.properties 是合数阶的
+- belel.java 是示例代码
