@@ -227,8 +227,8 @@ public class belel {
 
 
     public static void main(String[] args) {
-        //pairing = PairingFactory.getPairing("E:/java program/large universe/database/Ours/a.properties");
-        pairing = PairingFactory.getPairing("./a.properties");
+        //pairing = PairingFactory.getPairing("E:/java program/large universe/database/Ours/prime.properties");
+        pairing = PairingFactory.getPairing("./prime.properties");
         PairingFactory.getInstance().setUsePBCWhenPossible(true);
         String[] baseAttributes = {"doctor", "hospital", "nurse", "patient", "pharmacist", "researcher", "administrator", "technician", "staff", "volunteer"};
         String[] attributes = {};

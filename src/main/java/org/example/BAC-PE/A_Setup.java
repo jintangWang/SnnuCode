@@ -4,7 +4,7 @@ import it.unisa.dia.gas.jpbc.PairingFactory;
 
 public class 1Setup.java {
     public static void setup() {
-        // Initialize pairing (assumes a.properties is on classpath)
+        // Initialize pairing (assumes prime.properties is on classpath)
         Pairing pairing = PairingFactory.getPairing("a.properties");
 
         // Generate group elements
