@@ -7,7 +7,12 @@ import it.unisa.dia.gas.plaf.jpbc.pairing.PairingFactory;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
+
+import org.example.helpers.Util;
 
 public class Main {
 
@@ -84,13 +89,51 @@ public class Main {
         msk.nu = nu;
     }
 
+    public static class EncryptionKey {
+        public Set<String> S;
+        public List<Element> ek1List;
+        public Element ek2;
+
+        public EncryptionKey(Set<String> S, List<Element> ek1List, Element ek2) {
+            this.S = S;
+            this.ek1List = ek1List;
+            this.ek2 = ek2;
+        }
+    }
+
+    public static EncryptionKey EKGen(MSK msk, Set<String> S) {
+        // random sigma
+        Element sigma = mpk.pairing.getZr().newRandomElement().getImmutable();
+        // g^mu
+        Element gMu = mpk.g.powZn(msk.mu).getImmutable();
+
+        // compute ek2 = g^sigma
+        Element ek2 = mpk.g.powZn(sigma).getImmutable();
+
+        // compute ek_{1,i} = g^mu * H1(att_snd_i)^sigma for each attribute
+        List<Element> ek1List = new ArrayList<>();
+        for (String att : S) {
+            Element h1Val = mpk.H1.apply(att).powZn(sigma).getImmutable();
+            Element ek1i = gMu.mul(h1Val).getImmutable();
+            ek1List.add(ek1i);
+        }
+
+        return new EncryptionKey(S, ek1List, ek2);
+    }
+
 
     public static void main(String[] args) {
 
         long start = System.currentTimeMillis();
         setup();
         long end = System.currentTimeMillis();
-        System.out.print("setup运行时间为");
-        System.out.println(end - start);
+        System.out.println("setup 运行时间为：" + (end - start));
+
+        // Generate encryption key
+        long start1 = System.currentTimeMillis();
+        Set<String> attrSet = Util.generateRandomAttributes(5);
+        EKGen(msk, attrSet);
+        long end1 = System.currentTimeMillis();
+        System.out.println("EKGen 运行时间为：" + (end1 - start1));
     }
 }
