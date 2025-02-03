@@ -216,7 +216,6 @@ public class Main {
                 "ethics_committee"
         };
 
-
         // Setup
         long start = System.currentTimeMillis();
         setup();
@@ -233,9 +232,7 @@ public class Main {
         // Generate decryption key
         long start2 = System.currentTimeMillis();
         AccessStructure accessStructure = Util.generateAccessStructure(baseAttributes, size);
-        // 生成随机bf元素
         Element bf = mpk.pairing.getZr().newRandomElement().getImmutable();
-        // 调用DKGen
         DecryptionKey dk = DKGen(msk, accessStructure, bf);
         long end2 = System.currentTimeMillis();
         System.out.println("DKGen 运行时间为：" + (end2 - start2));

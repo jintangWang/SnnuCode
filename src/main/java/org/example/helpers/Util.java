@@ -63,7 +63,6 @@ public class Util {
             }
         }
 
-        
         // 选择属性映射
         String[] phi = new String[size];
         for (int i = 0; i < size; i++) {
