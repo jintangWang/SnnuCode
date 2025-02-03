@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.example.helpers.AccessStructure;
 import org.example.helpers.Util;
 
 public class Main {
@@ -121,9 +122,102 @@ public class Main {
         return new EncryptionKey(S, ek1List, ek2);
     }
 
+    // 解密密钥数据结构
+    public static class DecryptionKey {
+        public AccessStructure R;        // 访问结构 (A, phi)
+        public List<Element> dk1;        // dk_{1,i} 列表
+        public List<Element> dk2;        // dk_{2,i} 列表
+        public Element QK;               // 查询密钥
+
+        public DecryptionKey(AccessStructure R, List<Element> dk1, 
+                           List<Element> dk2, Element QK) {
+            this.R = R;
+            this.dk1 = dk1;
+            this.dk2 = dk2;
+            this.QK = QK;
+        }
+    }
+
+    public static DecryptionKey DKGen(MSK msk, AccessStructure R, Element bf) {
+        Pairing pairing = mpk.pairing;
+        
+        // 获取访问矩阵维度
+        int lA = R.A.length;    // 行数
+        int nA = R.A[0].length; // 列数
+
+        // 构造向量 v = (nu, v2, ..., vnA)
+        Element[] v = new Element[nA];
+        v[0] = msk.nu;  // 第一个元素为主密钥中的 nu
+        for(int i = 1; i < nA; i++) {
+            v[i] = pairing.getZr().newRandomElement().getImmutable();
+        }
+
+        // 计算 omega = A * v
+        Element[] omega = new Element[lA];
+        for(int i = 0; i < lA; i++) {
+            omega[i] = pairing.getZr().newZeroElement();
+            for(int j = 0; j < nA; j++) {
+                Element aij = pairing.getZr().newElement(R.A[i][j]);
+                omega[i] = omega[i].add(aij.mul(v[j]));
+            }
+            omega[i] = omega[i].getImmutable();
+        }
+
+        // 生成 dk1 和 dk2
+        List<Element> dk1List = new ArrayList<>();
+        List<Element> dk2List = new ArrayList<>();
+        
+        for(int i = 0; i < lA; i++) {
+            // 随机选择 tau_i
+            Element tau_i = pairing.getZr().newRandomElement().getImmutable();
+            
+            // 计算 dk_{1,i} = g^{omega_i} * H2(phi(i))^{tau_i}
+            Element gOmega = mpk.g.powZn(omega[i]);
+            Element h2Tau = mpk.H2.apply(R.phi[i]).powZn(tau_i);
+            Element dk1 = gOmega.mul(h2Tau).getImmutable();
+            dk1List.add(dk1);
+            
+            // 计算 dk_{2,i} = g^{tau_i}
+            Element dk2 = mpk.g.powZn(tau_i).getImmutable();
+            dk2List.add(dk2);
+        }
+
+        // 计算查询密钥 QK = delta'^{mu/w} * delta
+        Element muOverW = msk.mu.div(bf);
+        Element QK = mpk.deltaPrime.powZn(muOverW).mul(mpk.delta).getImmutable();
+
+        return new DecryptionKey(R, dk1List, dk2List, QK);
+    }
+
+
 
     public static void main(String[] args) {
 
+        int size = 5;
+        String[] baseAttributes = new String[]{
+                // 药企相关
+                "pharma_manufacturer",
+                "drug_developer",
+                "quality_control",
+                "clinical_director",
+                // 临床试验中心相关
+                "trial_center",
+                "trial_coordinator",
+                "trial_investigator",
+                "data_manager",
+                // 医生相关
+                "clinician",
+                "principal_investigator",
+                // FDA相关
+                "fda_reviewer",
+                "regulatory_officer",
+                // 其他
+                "data_analyst",
+                "ethics_committee"
+        };
+
+
+        // Setup
         long start = System.currentTimeMillis();
         setup();
         long end = System.currentTimeMillis();
@@ -131,9 +225,19 @@ public class Main {
 
         // Generate encryption key
         long start1 = System.currentTimeMillis();
-        Set<String> attrSet = Util.generateRandomAttributes(5);
-        EKGen(msk, attrSet);
+        Set<String> attrSet = Util.generateAttributes(baseAttributes, size);
+        EncryptionKey ek = EKGen(msk, attrSet);
         long end1 = System.currentTimeMillis();
         System.out.println("EKGen 运行时间为：" + (end1 - start1));
+
+        // Generate decryption key
+        long start2 = System.currentTimeMillis();
+        AccessStructure accessStructure = Util.generateAccessStructure(baseAttributes, size);
+        // 生成随机bf元素
+        Element bf = mpk.pairing.getZr().newRandomElement().getImmutable();
+        // 调用DKGen
+        DecryptionKey dk = DKGen(msk, accessStructure, bf);
+        long end2 = System.currentTimeMillis();
+        System.out.println("DKGen 运行时间为：" + (end2 - start2));
     }
 }

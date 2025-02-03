@@ -1,18 +1,13 @@
-package belel;
+package org.example;
 
 import it.unisa.dia.gas.jpbc.Element;
 import it.unisa.dia.gas.jpbc.Field;
 import it.unisa.dia.gas.jpbc.Pairing;
 import it.unisa.dia.gas.plaf.jpbc.pairing.PairingFactory;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
-import static Ours.LargeUniverseABE.generateArray;
-
-public class belel {
+public class belelDemo {
 
     private static Pairing pairing;
 
@@ -225,6 +220,25 @@ public class belel {
         return w_z;
     }
 
+
+    public static String[] generateArray(String[] baseArray, int targetSize) {
+        List<String> result = new ArrayList<>();
+        int baseLength = baseArray.length;
+
+        // 循环填充
+        while (result.size() < targetSize) {
+            for (String item : baseArray) {
+                if (result.size() < targetSize) {
+                    result.add(item);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // 转为数组返回
+        return result.toArray(new String[0]);
+    }
 
     public static void main(String[] args) {
         //pairing = PairingFactory.getPairing("E:/java program/large universe/database/Ours/prime.properties");
