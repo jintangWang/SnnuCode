@@ -7,9 +7,7 @@ import it.unisa.dia.gas.plaf.jpbc.pairing.PairingFactory;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 
 import org.example.helpers.AccessStructure;
@@ -189,6 +187,112 @@ public class Main {
         return new DecryptionKey(R, dk1List, dk2List, QK);
     }
 
+    // 关键字索引结构
+    public static class KeywordIndex {
+        public Element I1;           // g^s
+        public Element I2;           // delta^s
+        public List<Element> I3;     // H3(kappa_i) 列表
+
+        public KeywordIndex(Element I1, Element I2, List<Element> I3) {
+            this.I1 = I1;
+            this.I2 = I2;
+            this.I3 = I3;
+        }
+    }
+
+    // 密文结构
+    public static class Ciphertext {
+        public Set<String> S;        // 发送者属性集
+        public Set<String> R;        // 接收者属性集
+        public Element c0;           // 消息加密部分
+        public Element c1;           // g^s
+        public List<Element> c2;     // H2(att_rcv)^s 列表
+        public Element c3;           // g^(sigma + sigma')
+        public Element c4;           // g^tau
+        public List<Element> c5;     // 发送者属性验证部分
+        public KeywordIndex Ikw;     // 关键字索引
+
+        public Ciphertext(Set<String> S, Set<String> R, Element c0, Element c1,
+                          List<Element> c2, Element c3, Element c4, List<Element> c5,
+                          KeywordIndex Ikw) {
+            this.S = S;
+            this.R = R;
+            this.c0 = c0;
+            this.c1 = c1;
+            this.c2 = c2;
+            this.c3 = c3;
+            this.c4 = c4;
+            this.c5 = c5;
+            this.Ikw = Ikw;
+        }
+    }
+
+    public static Ciphertext Encrypt(EncryptionKey ek, Set<String> R, Set<String> Sprime,
+                                     Element message, Set<String> keywords) {
+        Pairing pairing = mpk.pairing;
+
+        // 随机选择 s, sigma', tau
+        Element s = pairing.getZr().newRandomElement().getImmutable();
+        Element sigmaPrime = pairing.getZr().newRandomElement().getImmutable();
+        Element tau = pairing.getZr().newRandomElement().getImmutable();
+
+        // 计算基本密文组件
+        Element eGGs = pairing.pairing(mpk.g, mpk.g).powZn(s).getImmutable();
+        Element c0 = message.mul(eGGs).getImmutable();
+        Element c1 = mpk.g.powZn(s).getImmutable();
+
+        // 计算接收者属性相关组件
+        List<Element> c2List = new ArrayList<>();
+        for(String attr : R) {
+            Element h2s = mpk.H2.apply(attr).powZn(s).getImmutable();
+            c2List.add(h2s);
+        }
+
+        Element c3 = ek.ek2.mul(mpk.g.powZn(sigmaPrime)).getImmutable();
+        Element c4 = mpk.g.powZn(tau).getImmutable();
+
+        // 计算发送者属性相关组件
+        List<Element> c5List = new ArrayList<>();
+        String c14 = c0.toString() + c1.toString();
+        for(Element attr : c2List) {
+            c14 += attr.toString();
+        }
+        c14 += c3.toString() + c4.toString();
+
+        for(String attr : Sprime) {
+            Element ek1 = null;
+            // 找到对应的 ek1
+            for(int j = 0; j < ek.S.size(); j++) {
+                if(ek.S.contains(attr)) {
+                    ek1 = ek.ek1List.get(j);
+                    break;
+                }
+            }
+            // 计算 c5
+            Element h1sigma = mpk.H1.apply(attr).powZn(sigmaPrime).getImmutable();
+            Element ek1i = ek1.mul(h1sigma).getImmutable();
+            Element h3tau = mpk.H3.apply(c14.getBytes()).powZn(tau).getImmutable();
+            Element c5 = ek1i.mul(h3tau).getImmutable();
+            c5List.add(c5);
+        }
+
+        // 生成关键字索引
+        Element I1 = c1;  // g^s
+        Element I2 = mpk.delta.powZn(s).getImmutable();
+        List<Element> I3 = new ArrayList<>();
+
+        for(String kw : keywords) {
+            Element kappa = pairing.pairing(mpk.g.powZn(msk.mu), mpk.deltaPrime).powZn(s)
+                    .mul(pairing.pairing(mpk.g, mpk.H3.apply(kw.getBytes())).powZn(s))
+                    .getImmutable();
+            I3.add(mpk.H3.apply(kappa.toBytes()));
+        }
+
+        KeywordIndex Ikw = new KeywordIndex(I1, I2, I3);
+
+        return new Ciphertext(ek.S, R, c0, c1, c2List, c3, c4, c5List, Ikw);
+    }
+
 
 
     public static void main(String[] args) {
@@ -224,8 +328,8 @@ public class Main {
 
         // Generate encryption key
         long start1 = System.currentTimeMillis();
-        Set<String> attrSet = Util.generateAttributes(baseAttributes, size);
-        EncryptionKey ek = EKGen(msk, attrSet);
+        Set<String> senderAttrs = Util.generateAttributes(baseAttributes, size);
+        EncryptionKey ek = EKGen(msk, senderAttrs);
         long end1 = System.currentTimeMillis();
         System.out.println("EKGen 运行时间为：" + (end1 - start1));
 
@@ -236,5 +340,14 @@ public class Main {
         DecryptionKey dk = DKGen(msk, accessStructure, bf);
         long end2 = System.currentTimeMillis();
         System.out.println("DKGen 运行时间为：" + (end2 - start2));
+
+        // 加密
+        long start3 = System.currentTimeMillis();
+        Set<String> receiverAttrs = Util.generateAttributes(baseAttributes, size);
+        Element message = mpk.pairing.getGT().newRandomElement().getImmutable();
+        Set<String> keywords = new HashSet<>(Arrays.asList("clinical_trial", "phase1"));
+        Ciphertext ct = Encrypt(ek, receiverAttrs, senderAttrs, message, keywords);
+        long end3 = System.currentTimeMillis();
+        System.out.println("Encrypt 运行时间为：" + (end3 - start3));
     }
 }
