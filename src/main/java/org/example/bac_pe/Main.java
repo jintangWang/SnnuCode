@@ -353,8 +353,93 @@ public class Main {
 
     // Verify函数实现（简化版本）
     private static boolean Verify(AccessStructure S, Ciphertext ct) {
-        // TODO: 完善验证逻辑
-        return true;
+        // 获取访问矩阵维度
+        int lM = S.A.length;    // 行数
+        int nM = S.A[0].length; // 列数
+        
+        // 获取满足属性的行索引集合 I
+        List<Integer> I = new ArrayList<>();
+        for (int i = 0; i < lM; i++) {
+            if (ct.S.contains(S.phi[i])) {
+                I.add(i);
+            }
+        }
+        
+        // 如果没有足够的匹配属性，直接返回false
+        if (I.isEmpty()) {
+            return false;
+        }
+
+        try {
+            // 寻找系数 {ω_i}，使得 Σ ω_i * M_i = (1,0,...,0)
+            Element[] omega = solveCoefficients(S.A, I);
+            
+            // 构造验证等式左边
+            Element leftProduct = mpk.pairing.getGT().newOneElement();
+            
+            // 计算c_{1-4}的字符串
+            String c14 = ct.c0.toString() + ct.c1.toString();
+            for (Element c2 : ct.c2) {
+                c14 += c2.toString();
+            }
+            c14 += ct.c3.toString() + ct.c4.toString();
+            
+            // 计算每个分量并累乘
+            for (int idx = 0; idx < I.size(); idx++) {
+                int i = I.get(idx);
+                
+                // 计算分子 e(c_{5,i}, g)
+                Element numerator = mpk.pairing.pairing(ct.c5.get(idx), mpk.g);
+                
+                // 计算分母第一项 e(H1(att_i), c_3)
+                Element denom1 = mpk.pairing.pairing(
+                    mpk.H1.apply(S.phi[i]),
+                    ct.c3
+                );
+                
+                // 计算分母第二项 e(H3(c_{1-4}), c_4)
+                Element denom2 = mpk.pairing.pairing(
+                    mpk.H3.apply(c14.getBytes()),
+                    ct.c4
+                );
+                
+                // 计算分数
+                Element fraction = numerator.div(denom1.mul(denom2));
+                
+                // 进行幂运算并累乘
+                leftProduct = leftProduct.mul(fraction.powZn(omega[i]));
+            }
+            
+            // 构造验证等式右边
+            Element rightSide = mpk.eGGmu;  // e(g,g)^μ
+            
+            // 检查等式是否成立
+            return leftProduct.isEqual(rightSide);
+            
+        } catch (Exception e) {
+            // 如果无法找到有效的系数组合，返回false
+            return false;
+        }
+    }
+
+    // 辅助方法：求解系数
+    private static Element[] solveCoefficients(int[][] matrix, List<Integer> validRows) {
+        Pairing pairing = mpk.pairing;
+        int n = matrix[0].length;
+        Element[] omega = new Element[matrix.length];
+        
+        // 初始化所有系数为0
+        for (int i = 0; i < matrix.length; i++) {
+            omega[i] = pairing.getZr().newZeroElement();
+        }
+        
+        // 简单实现：将第一个有效行的系数设为1
+        // TODO: 实现完整的线性方程组求解
+        if (!validRows.isEmpty()) {
+            omega[validRows.get(0)] = pairing.getZr().newOneElement();
+        }
+        
+        return omega;
     }
 
     public static void main(String[] args) {
