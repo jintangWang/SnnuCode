@@ -316,6 +316,47 @@ public class Main {
         return new SearchTrapdoor(T1, T2);
     }
 
+    public static class SearchResult {
+        public boolean found;
+        public Ciphertext matchedCiphertext;
+
+        public SearchResult(boolean found, Ciphertext matchedCiphertext) {
+            this.found = found;
+            this.matchedCiphertext = matchedCiphertext;
+        }
+    }
+
+    // 改进 Search 算法实现
+    public static SearchResult Search(AccessStructure S, Ciphertext ct, SearchTrapdoor Tkw) {
+        // 先调用Verify检查 (这里简化实现)
+        if (!Verify(S, ct)) {
+            return new SearchResult(false, null);
+        }
+
+        // 计算 κ_kw = e(I1,T1)/e(I2,T2)
+        Element numerator = mpk.pairing.pairing(ct.Ikw.I1, Tkw.T1);
+        Element denominator = mpk.pairing.pairing(ct.Ikw.I2, Tkw.T2);
+        Element kappa_kw = numerator.div(denominator).getImmutable();
+
+        // 计算 H3(κ_kw)
+        Element h3_kappa = mpk.H3.apply(kappa_kw.toBytes());
+
+        // 在 I3 中查找匹配
+        for (Element h3_val : ct.Ikw.I3) {
+            if (h3_val.isEqual(h3_kappa)) {
+                return new SearchResult(true, ct);
+            }
+        }
+
+        return new SearchResult(false, null);
+    }
+
+    // Verify函数实现（简化版本）
+    private static boolean Verify(AccessStructure S, Ciphertext ct) {
+        // TODO: 完善验证逻辑
+        return true;
+    }
+
     public static void main(String[] args) {
 
         int size = 5;
@@ -379,6 +420,12 @@ public class Main {
         long end4 = System.currentTimeMillis();
         System.out.println("Trapdoor 运行时间为：" + (end4 - start4));
 
+        // 执行 Search 算法
+        long start5 = System.currentTimeMillis();
+        SearchResult result = Search(accessStructure, ct, td);
+        long end5 = System.currentTimeMillis();
+        System.out.println("Search 运行时间为：" + (end5 - start5));
+        System.out.println("Search result: " + (result.found ? "Keyword found!" : "Keyword not found."));
         
     }
 }

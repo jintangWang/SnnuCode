@@ -1,1 +1,15 @@
 .idea
+# 忽略 LaTeX 编译的中间文件
+*.fdb_latexmk
+*.fls
+*.aux
+*.xdv
+*.gz
+*.log
+*.bbl
+*.blg
+*.run.xml
+*.synctex
+*.toc
+*.out
+*.bcf-SAVE-ERROR

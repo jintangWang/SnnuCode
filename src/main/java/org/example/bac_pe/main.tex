@@ -1,0 +1,164 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.21 of 2022/01/12
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage[T1]{fontenc}
+% T1 fonts will be used to generate the final print and online PDFs,
+% so please use T1 fonts in your manuscript whenever possible.
+% Other font encondings may result in incorrect characters.
+%
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\setlength{\parindent}{1em}
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following two lines
+% to display URLs in blue roman font according to Springer's eBook style:
+%\usepackage{color}
+%\renewcommand\UrlFont{\color{blue}\rmfamily}
+%\urlstyle{rm}
+%
+\begin{document}
+%
+\title{Bilateral Access Control with Search for Pharmaceutical Data Sharing}
+%
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+\author{JinTang Wang\inst{1}, Tao Wang\inst{1}, ZhiChao Wang\inst{1}}
+
+\authorrunning{J. Wang et al.}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+% TODO 修改
+\institute{Shaanxi Normal University, Xi'an, Shaanxi 710062, P.R. China \and
+Springer Heidelberg, Tiergartenstr. 17, 69121 Heidelberg, Germany
+\email{lncs@springer.com}\\
+\url{http://www.springer.com/gp/computer-science/lncs} \and
+ABC Institute, Rupert-Karls-University Heidelberg, Heidelberg, Germany\\
+\email{\{abc,lncs\}@uni-heidelberg.de}}
+%
+\maketitle              % typeset the header of the contribution
+%
+\section{Proposed Construction}
+$\mathbf{Setup}(1^\lambda).$The algorithm generates a bilinear group $(\mathbb{G}, \mathbb{G}_T)$ of prime order $p$, with a generator $g \in \mathbb{G}$ and a bilinear map $e: \mathbb{G} \times \mathbb{G} \rightarrow \mathbb{G}_T$. It selects a random $\delta \in \mathbb{G}$ and computes $\delta' = \delta^z$, where $z \in \mathbb{Z}_p$ is chosen randomly. The algorithm chooses random values $\mu, \nu \in \mathbb{Z}_p$ and defines three hash functions:
+$$
+\mathcal{H}_1: \Omega_{\mathrm{snd}} \rightarrow \mathbb{G}, \quad \mathcal{H}_2: \Omega_{\mathrm{rcv}} \rightarrow \mathbb{G}, \quad \mathcal{H}_3: \{0,1\}^* \rightarrow \mathbb{G}
+$$
+where $\mathcal{H}_3$ is collision-resistant, and $\mathcal{H}_1, \mathcal{H}_2$ are modeled as random oracles. The algorithm outputs the master public key $mpk$ and the master secret key $msk$:
+\begin{gather*}
+mpk = (p, \mathbb{G}, \mathbb{G}_T, e, g, \delta, \delta', \mathcal{H}_1, \mathcal{H}_2, \mathcal{H}_3, e(g,g)^\mu, e(g,g)^\nu)\\
+msk = (\mu, \nu)
+\end{gather*}
+
+$\mathbf{EKGen}(msk, \mathcal{S}).$Given the sender's attribute set $\mathcal{S} = (att_{\mathbf{snd},1}, \ldots, att_{\mathbf{snd},k})$, the encryption key generation algorithm randomly selects $\sigma \in \mathbb{Z}_p^*$ and computes:
+$$ek_{1,i} = g^\mu \mathcal{H}_1(att_{\mathbf{snd},i})^\sigma, \quad ek_2 = g^\sigma \quad \text{for} \quad i \in [k]$$
+The algorithm outputs the encryption key $ ek = (\mathcal{S}, \{ ek_{1,i} \}_{i \in [k]}, ek_2) $.
+
+$\mathbf{DKGen}(msk, \mathbb{R}, bf)$
+Given the access structure $ \mathbb{R} = (\mathbb{A}, \phi) $, where $ \mathbb{A} \in \mathbb{Z}_p^{l_\mathbb{A} \times n_\mathbb{A}} $ and the mapping $ \phi: [l_\mathbb{A}] \rightarrow \Omega_{\text{rcv}} $, the decryption key generation algorithm randomly selects $ \vec{v} = (\nu, v_2, \ldots, v_{n_\mathbb{A}})^\top $ and computes $ \vec{\omega} = \mathbb{A} \vec{v} $. For each $ i \in [l_\mathbb{A}] $, it randomly selects $ \tau_i \in \mathbb{Z}_p $ and computes:
+$$
+dk_{1,i} = g^{\omega_i} \mathcal{H}_2(\phi(i))^{\tau_i}, \quad dk_{2,i} = g^{\tau_i}
+$$
+Data user provides blinding factor $ \text{bf} = w \in \mathbb{Z}_p^* $, the algorithm computes the query key: $\text{QK} = \delta'^{\mu/w} \delta$. The algorithm outputs the decryption key: $dk = (\mathbb{R}, \{ dk_{1,i}, dk_{2,i} \}_{i \in [l_\mathbb{A}]}, \text{QK})$
+
+$\mathbf{Encrypt}(ek, \mathcal{R}, \mathcal{S}', m, W).$ Given the receiver's attribute set $ \mathcal{R} = (att_{\mathbf{rcv},1}, \\ att_{\mathbf{rcv},2},\ldots, att_{\mathbf{rcv},l}) $ and the sender's attribute subset $\mathcal{S}'=(att_{\mathbf{snd},1}, att_{\mathbf{snd},2}, \\ \ldots, att_{\mathbf{snd},k^{\prime}})$, s.t. $ \mathcal{S}' \subseteq \mathcal{S} $, the encryption algorithm randomly selects $ s, \sigma', \tau \in \mathbb{Z}_p $ and computes:
+\begin{gather*}
+c_0 = m \cdot e(g, g)^{\nu s}, \quad c_1 = g^s, \quad c_{2,i} = \mathcal{H}_2(att_{\mathbf{rcv},i})^s,\\
+c_3 = ek_2 \cdot g^{\sigma'} = g^{\sigma + \sigma'}, \quad c_4 = g^\tau
+\end{gather*}
+Let $ c_{1-4} = c_0 \| c_1 \| c_{2,1} \| \cdots \| c_{2,l} \| c_3 \| c_4 $. For each $ i' \in [k'] $, find $j$ such that $ att_{\mathbf{snd},i'} = att_{\mathbf{snd},j} $ and compute:
+\begin{gather*}
+ek_{1,i'} = ek_{1,j} \cdot \mathcal{H}_1(att_{\mathbf{snd},i'})^{\sigma'} = g^\mu \mathcal{H}_1(att_{\mathbf{snd},i'})^{\sigma + \sigma'},\\
+c_{5,i'} = ek_{1,i'} \cdot \mathcal{H}_3(c_{1-4})^\tau = g^\mu \mathcal{H}_1(att_{\mathbf{snd},i'})^{\sigma + \sigma'} \mathcal{H}_3(c_{1-4})^\tau
+\end{gather*}
+For each keyword $ kw_i \in W $, compute the index: 
+$$\kappa_i = e(g^\mu, \delta')^s \cdot e(g, \mathcal{H}_3(kw_i))^s$$
+The algorithm outputs the keyword index $ \text{I}_{kw} = (\text{I}_1, \text{I}_2, \text{I}_3) $, where $ \text{I}_1 = c_1 = g^s $, $ \text{I}_2 = \delta^s $, and $ \text{I}_3 = \{ \mathcal{H}_3(\kappa_i) \}_{kw_i \in W} $. The ciphertext is:
+$c = ((\mathcal{S}, \mathcal{R}), c_0, c_1, \{ c_{2,i} \}_{i \in [l]},$ $ c_3, c_4, \{ c_{5,i'} \}_{i' \in [k']}, \text{I}_{kw})$
+
+$\mathbf{Trapdoor}(mpk, \text{QK}, \text{bf}, kw).$ The trapdoor for keyword $kw$ is computed using the predefined blinding factor $ \text{bf} $ as follows:
+$$T_1 = \mathcal{H}_3(kw) \cdot \text{QK}^{\text{bf}}, \quad T_2 = g^{\text{bf}}$$
+The algorithm outputs the trapdoor $ T_{kw} = (T_1, T_2) $.
+
+$\mathbf{Search}(\mathbb{S}, \text{I}_{kw}, T_{kw}, c)$. First, call $ \text{Verify}(\mathbb{S}, c) $. If the result is 0, output $ \perp $. Otherwise, compute:
+$$
+\kappa_{kw} = \frac{e(\text{I}_1, T_1)}{e(\text{I}_2, T_2)} = e(g^\mu, \delta')^s \cdot e(g, \mathcal{H}_3(kw))^s
+$$
+y comparing $ \mathcal{H}_3(\kappa_{kw}) $ with the values in $ \text{I}_3 $, find the matching ciphertext. If no match is found, output $ \perp $; otherwise, return the matching $(c, \text{I}_{kw})$ to Receiver.
+
+$\mathbf{Verify}(\mathbb{S}, c).$ Given the sender's access structure $ \mathbb{S} = (\mathbb{M}, \rho) $, where $ \mathbb{M} \in \mathbb{Z}_p^{\ell_\mathbb{M} \times n_\mathbb{M}} $ and $ \rho: [\ell_\mathbb{M}] \rightarrow \Omega_{\text{snd}} $, let $ I = \{ i \in [\ell_\mathbb{M}] | \rho(i) \in \mathcal{S} \} $. Find the coefficients $ \{ \omega_i \}_{i \in I} $ such that $ \sum_{i \in I} \omega_i \mathbb{M}_i = (1, 0, \ldots, 0) $. Verify the equality:
+$$
+\prod_{i \in I} \left( \frac{e(c_{5,i}, g)}{e(\mathcal{H}_1(att_{\mathsf{snd},i}), c_3) \cdot e(\mathcal{H}_3(c_{1-4}), c_4)} \right)^{\kappa_i \omega_i} \overset{?}{=} e(g, g)^\mu
+$$
+If the equality holds, return 1; otherwise, return 0.
+
+$\mathbf{ReKeyGen}(dk, mpk)$. The re-encryption key generation algorithm first verifies that the input decryption key $dk$ satisfies the access structure $\mathbb{R}$ by checking if there exists a set of coefficients $\{\zeta_j\}_{j \in J}$ such that $\sum_{j \in J} \zeta_j \mathbb{A}_j = (1,0,\ldots,0)$ where $J = \{j \in [l_{\mathbb{A}}] | \phi(j) \in \mathcal{R}\}$. If verification fails, the algorithm outputs $\perp$. Otherwise, selects a unique secret value $\beta_u \in \mathbb{Z}_p^*$ for each user $u$ and for each component in $dk$, computes:
+$$
+rk_{1,i} = dk_{1,i}^{\beta_u},\quad rk_{2,i} = dk_{2,i}^{\beta_u} \quad \text{for} \quad i \in [l_\mathbb{A}]
+$$
+The algorithm outputs the re-encryption key: $rk = (\mathbb{R}, \{rk_{1,i}, rk_{2,i}\}_{i \in [l_\mathbb{A}]})$
+
+$\mathbf{ReEncrypt}(c, rk)$. The proxy re-encryption algorithm takes as input a ciphertext $c$ and re-encryption key $rk$. Let $J = \{j \in [l_{\mathbb{A}}] | \phi(j) \in \mathcal{R}\}$. Find coefficients $\{\zeta_j\}_{j \in J}$ such that $\sum_{j \in J} \zeta_j \mathbb{A}_j = (1,0,\ldots,0)$. Compute partial decryption:
+$$c'_0 = \prod_{j \in J} \left(\frac{e(rk_{2,j}, c_{2,j})}{e(rk_{1,j}, c_1)}\right)^{\zeta_j}$$
+Output transformed ciphertext: $c' = (c_0, c'_0)$
+
+$\mathbf{Decrypt}(c')$. The final decryption algorithm takes the transformed ciphertext $c'$ and performs:
+$$m = c_0 \cdot {c'_0}^{1/\beta_u}$$
+
+$\mathbf{Correctness}$.
+If $ \mathcal{S} \models \mathbb{S} $, the ciphertext can pass the verification according to the verification algorithm:
+$$
+\begin{aligned}
+&\prod_{i \in I} \left( \frac{e(c_{5,i}, g)}{e(\mathcal{H}_1(att_{\mathsf{snd},i}), c_3) \cdot e(\mathcal{H}_3(c_{1-4}), c_4)} \right)^{\kappa_i \omega_i} \\
+&= \prod_{i \in I} \left( \frac{e(g^\mu \mathcal{H}_1(att_{\mathsf{snd},i})^{\sigma + \sigma'} \mathcal{H}_3(c_{1-4})^\tau, g)}{e(\mathcal{H}_1(att_{\mathsf{snd},i}), g^{\sigma + \sigma'}) \cdot e(\mathcal{H}_3(c_{1-4}), g^\tau)} \right)^{\kappa_i \omega_i} \\
+&= \prod_{i \in I} e(g^\mu, g)^{\kappa_i \omega_i} = e(g, g)^{\mu \sum_{i \in I} \kappa_i \omega_i} = e(g, g)^\mu.
+\end{aligned}
+$$
+
+If the keyword matches, the ciphertext can be retrieved through the Search algorithm by matching the keyword:
+$$
+\begin{aligned}
+k_{kw} &= \frac{e(\text{I}_1, T_1)}{e(\text{I}_2, T_2)} = \frac{e(g^s, \mathcal{H}_3(kw) \text{QK}^w)}{e(\delta^s, g^w)} \\
+&= \frac{e(g^s, \delta'^\mu \delta^w \mathcal{H}_3(kw))}{e(g, \delta)^{w s}} \\
+&= \frac{e(g^s, \delta')^{\mu} e(g, \delta)^{w s} e(g, \mathcal{H}_3(kw))^s}{e(g, \delta)^{w s}} \\
+&= e(g, \delta')^{\mu s} e(g, \mathcal{H}_3(kw))^s.
+\end{aligned}
+$$
+
+Then, it checks if $H_{3}(k_{kw})$ appears in $\text{I}_3$ and outputs the matched ciphertext.
+
+The correctness of the complete decryption process through proxy re-encryption can be verified as follows if $ \mathcal{R} \models \mathbb{R} $:
+$$
+\begin{aligned}
+c_0^{\prime} & =\prod_{j\in J}\left(\frac{e(rk_{2,j}, c_{2,j})}{e(rk_{1,j}, c_1)}\right)^{\zeta_{j}} \\
+& =\prod_{j\in J}\left(\frac{e(g^{\tau_{j}\beta_u},\mathcal{H}_2(att_{j})^{s})}{e(g^{\omega_{j}\beta_u}\mathcal{H}_2(\phi(j))^{\tau_{j}\beta_u},g^{s})}\right)^{\zeta_{j}}\\  
+& =\prod_{j\in J}\left(\frac{{e(g,\mathcal{H}_2(att_{j}))^{s\tau_{j}\beta_u}}}{e(g,g)^{s\omega_{j}\beta_u}\cdot{e(\mathcal{H}_2(\phi(j)),g)^{s\tau_{j}\beta_u}}}\right)^{\zeta_{j}}\\  
+& =\prod_{j\in J}e(g,g)^{-s\beta_u\omega_{j}\zeta_{j}}\\  
+& =e(g,g)^{-s\beta_u\sum_{j\in J}\omega_{j}\zeta_{j}}\\  
+& =e(g,g)^{-s\beta_u\nu}
+\end{aligned}
+$$
+
+Finally, message $m$ can be recovered through: 
+$$m = c_0 \cdot {c'_0}^{1/\beta_u} = \left( m \cdot e(g,g)^{\nu s} \right) \cdot e(g,g)^{-\nu s} = m$$
+
+Therefore, our verification algorithm, search algorithm, and decryption algorithm are correct.
+
+%
+% ---- Bibliography ----
+%
+% BibTeX users should specify bibliography style 'splncs04'.
+% References will then be sorted and formatted in the correct style.
+%
+\bibliographystyle{splncs04}
+\bibliography{references}
+
+
+\end{document}
