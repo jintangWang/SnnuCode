@@ -293,7 +293,28 @@ public class Main {
         return new Ciphertext(ek.S, R, c0, c1, c2List, c3, c4, c5List, Ikw);
     }
 
+    // Trapdoor structure
+    public static class SearchTrapdoor {
+        public Element T1;  // H3(kw) * QK^bf
+        public Element T2;  // g^bf
 
+        public SearchTrapdoor(Element T1, Element T2) {
+            this.T1 = T1;
+            this.T2 = T2;
+        }
+    }
+
+    public static SearchTrapdoor Trapdoor(Element QK, Element bf, String keyword) {
+        // Compute T1 = H3(kw) * QK^bf
+        Element h3kw = mpk.H3.apply(keyword.getBytes());
+        Element qkBf = QK.powZn(bf);
+        Element T1 = h3kw.mul(qkBf).getImmutable();
+
+        // Compute T2 = g^bf
+        Element T2 = mpk.g.powZn(bf).getImmutable();
+
+        return new SearchTrapdoor(T1, T2);
+    }
 
     public static void main(String[] args) {
 
@@ -341,7 +362,7 @@ public class Main {
         long end2 = System.currentTimeMillis();
         System.out.println("DKGen 运行时间为：" + (end2 - start2));
 
-        // 加密
+        // Encrypt
         long start3 = System.currentTimeMillis();
         Set<String> receiverAttrs = Util.generateAttributes(baseAttributes, size);
         Element message = mpk.pairing.getGT().newRandomElement().getImmutable();
@@ -349,5 +370,15 @@ public class Main {
         Ciphertext ct = Encrypt(ek, receiverAttrs, senderAttrs, message, keywords);
         long end3 = System.currentTimeMillis();
         System.out.println("Encrypt 运行时间为：" + (end3 - start3));
+
+
+        // Generate trapdoor for keyword
+        long start4 = System.currentTimeMillis();
+        String keyword = "clinical_trial";
+        SearchTrapdoor td = Trapdoor(dk.QK, bf, keyword);
+        long end4 = System.currentTimeMillis();
+        System.out.println("Trapdoor 运行时间为：" + (end4 - start4));
+
+        
     }
 }
