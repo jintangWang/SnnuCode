@@ -328,7 +328,7 @@ public class Main {
 
     // 改进 Search 算法实现
     public static SearchResult Search(AccessStructure S, Ciphertext ct, SearchTrapdoor Tkw) {
-        // 先调用Verify检查 (这里简化实现)
+        // 先调用Verify检查
         if (!Verify(S, ct)) {
             return new SearchResult(false, null);
         }
@@ -351,7 +351,43 @@ public class Main {
         return new SearchResult(false, null);
     }
 
-    // Verify函数实现（简化版本）
+    // Add helper method:
+    private static boolean verifyOmegaCoefficients(int[][] matrix, Element[] omega) {
+        if (omega == null || matrix == null || matrix.length == 0) {
+            return false;
+        }
+        
+        int cols = matrix[0].length;
+        Element[] result = new Element[cols];
+        
+        // Initialize result array with zero elements
+        for (int j = 0; j < cols; j++) {
+            result[j] = mpk.pairing.getZr().newElement(0);
+        }
+        
+        // Compute Σ ω_i * M_i
+        for (int i = 0; i < matrix.length; i++) {
+            for (int j = 0; j < cols; j++) {
+                result[j] = result[j].add(omega[i].duplicate().mul(matrix[i][j]));
+            }
+        }
+        
+        // Check if result equals (1,0,...,0)
+        for (int j = 0; j < cols; j++) {
+            if (j == 0 && !result[j].isOne()) {
+                System.out.println("First element is not 1: " + result[j]);
+                return false;
+            }
+            if (j > 0 && !result[j].isZero()) {
+                System.out.println("Element at position " + j + " is not 0: " + result[j]);
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    // Verify函数
     private static boolean Verify(AccessStructure S, Ciphertext ct) {
         // 获取访问矩阵维度
         int lM = S.A.length;    // 行数
@@ -373,6 +409,10 @@ public class Main {
         try {
             // 寻找系数 {ω_i}，使得 Σ ω_i * M_i = (1,0,...,0)
             Element[] omega = solveCoefficients(S.A, I);
+            // Verify omega
+            System.out.println("Verifying omega coefficients:");
+            boolean isValid = verifyOmegaCoefficients(S.A, omega);
+            System.out.println("Omega verification result: " + (isValid ? "VALID" : "INVALID"));
             
             // 构造验证等式左边
             Element leftProduct = mpk.pairing.getGT().newOneElement();
@@ -428,69 +468,75 @@ public class Main {
         int rowCount = validRows.size();
         int colCount = matrix[0].length;
         Element[] omega = new Element[matrix.length];
-
+    
         // Initialize all coefficients to 0
         for (int i = 0; i < matrix.length; i++) {
             omega[i] = pairing.getZr().newZeroElement();
         }
-
-        // If no valid rows, return all zeros
+    
         if (rowCount == 0) {
             return omega;
         }
-
-        // Build augmented matrix in BigInteger form
-        BigInteger p = pairing.getZr().getOrder();
-        BigInteger[][] augMat = new BigInteger[rowCount][colCount + 1];
+    
+        BigInteger pBigInt = pairing.getZr().getOrder();
+        int numCols = colCount + 1; // Augmented matrix columns
+        BigInteger[][] augMat = new BigInteger[rowCount][numCols];
+    
+        // Initialize augmented matrix
         for (int i = 0; i < rowCount; i++) {
-            int originalRow = validRows.get(i);
+            int origRow = validRows.get(i);
             for (int j = 0; j < colCount; j++) {
-                augMat[i][j] = BigInteger.valueOf(matrix[originalRow][j]).mod(p);
+                augMat[i][j] = BigInteger.valueOf(matrix[origRow][j]).mod(pBigInt);
             }
-            // The first valid row has 1 in augmented part, others have 0
+            // Target vector: first row is 1, others 0
             augMat[i][colCount] = (i == 0) ? BigInteger.ONE : BigInteger.ZERO;
         }
-
-        // Perform Gaussian elimination on augMat
-        for (int i = 0; i < rowCount; i++) {
+    
+        // Gaussian elimination
+        int lead = 0;
+        for (int r = 0; r < rowCount && lead < colCount; r++) {
             // Find pivot row
-            int pivot = i;
-            while (pivot < rowCount && augMat[pivot][i].equals(BigInteger.ZERO)) {
-                pivot++;
+            int i = r;
+            while (i < rowCount && augMat[i][lead].equals(BigInteger.ZERO)) {
+                i++;
             }
-            if (pivot == rowCount) {
-                continue; // no pivot in this column
+            if (i == rowCount) {
+                lead++;
+                r--;
+                continue;
             }
-            // Swap rows if needed
-            if (pivot != i) {
-                BigInteger[] temp = augMat[i];
-                augMat[i] = augMat[pivot];
-                augMat[pivot] = temp;
-            }
+    
+            // Swap rows
+            BigInteger[] temp = augMat[r];
+            augMat[r] = augMat[i];
+            augMat[i] = temp;
+    
             // Normalize pivot row
-            BigInteger invPivot = augMat[i][i].modInverse(p);
-            for (int k = i; k <= colCount; k++) {
-                augMat[i][k] = augMat[i][k].multiply(invPivot).mod(p);
+            BigInteger pivot = augMat[r][lead];
+            BigInteger invPivot = pivot.modInverse(pBigInt);
+            for (int j = lead; j < numCols; j++) {
+                augMat[r][j] = augMat[r][j].multiply(invPivot).mod(pBigInt);
             }
-            // Eliminate below and above
-            for (int r = 0; r < rowCount; r++) {
-                if (r != i) {
-                    BigInteger factor = augMat[r][i];
-                    for (int c = i; c <= colCount; c++) {
-                        augMat[r][c] = augMat[r][c]
-                            .subtract(factor.multiply(augMat[i][c]).mod(p))
-                            .mod(p);
+    
+            // Eliminate other rows
+            for (i = 0; i < rowCount; i++) {
+                if (i != r) {
+                    BigInteger factor = augMat[i][lead];
+                    for (int j = lead; j < numCols; j++) {
+                        BigInteger val = augMat[i][j].subtract(factor.multiply(augMat[r][j]).mod(pBigInt)).mod(pBigInt);
+                        augMat[i][j] = val;
                     }
                 }
             }
+            lead++;
         }
-
-        // Extract solution
+    
+        // Back substitution to get coefficients
         for (int i = 0; i < rowCount; i++) {
             int origRow = validRows.get(i);
             omega[origRow] = pairing.getZr().newElement(augMat[i][colCount]).getImmutable();
         }
-
+    
         return omega;
     }
 
