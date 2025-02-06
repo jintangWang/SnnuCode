@@ -425,20 +425,72 @@ public class Main {
     // 辅助方法：求解系数
     private static Element[] solveCoefficients(int[][] matrix, List<Integer> validRows) {
         Pairing pairing = mpk.pairing;
-        int n = matrix[0].length;
+        int rowCount = validRows.size();
+        int colCount = matrix[0].length;
         Element[] omega = new Element[matrix.length];
-        
-        // 初始化所有系数为0
+
+        // Initialize all coefficients to 0
         for (int i = 0; i < matrix.length; i++) {
             omega[i] = pairing.getZr().newZeroElement();
         }
-        
-        // 简单实现：将第一个有效行的系数设为1
-        // TODO: 实现完整的线性方程组求解
-        if (!validRows.isEmpty()) {
-            omega[validRows.get(0)] = pairing.getZr().newOneElement();
+
+        // If no valid rows, return all zeros
+        if (rowCount == 0) {
+            return omega;
         }
-        
+
+        // Build augmented matrix in BigInteger form
+        BigInteger p = pairing.getZr().getOrder();
+        BigInteger[][] augMat = new BigInteger[rowCount][colCount + 1];
+        for (int i = 0; i < rowCount; i++) {
+            int originalRow = validRows.get(i);
+            for (int j = 0; j < colCount; j++) {
+                augMat[i][j] = BigInteger.valueOf(matrix[originalRow][j]).mod(p);
+            }
+            // The first valid row has 1 in augmented part, others have 0
+            augMat[i][colCount] = (i == 0) ? BigInteger.ONE : BigInteger.ZERO;
+        }
+
+        // Perform Gaussian elimination on augMat
+        for (int i = 0; i < rowCount; i++) {
+            // Find pivot row
+            int pivot = i;
+            while (pivot < rowCount && augMat[pivot][i].equals(BigInteger.ZERO)) {
+                pivot++;
+            }
+            if (pivot == rowCount) {
+                continue; // no pivot in this column
+            }
+            // Swap rows if needed
+            if (pivot != i) {
+                BigInteger[] temp = augMat[i];
+                augMat[i] = augMat[pivot];
+                augMat[pivot] = temp;
+            }
+            // Normalize pivot row
+            BigInteger invPivot = augMat[i][i].modInverse(p);
+            for (int k = i; k <= colCount; k++) {
+                augMat[i][k] = augMat[i][k].multiply(invPivot).mod(p);
+            }
+            // Eliminate below and above
+            for (int r = 0; r < rowCount; r++) {
+                if (r != i) {
+                    BigInteger factor = augMat[r][i];
+                    for (int c = i; c <= colCount; c++) {
+                        augMat[r][c] = augMat[r][c]
+                            .subtract(factor.multiply(augMat[i][c]).mod(p))
+                            .mod(p);
+                    }
+                }
+            }
+        }
+
+        // Extract solution
+        for (int i = 0; i < rowCount; i++) {
+            int origRow = validRows.get(i);
+            omega[origRow] = pairing.getZr().newElement(augMat[i][colCount]).getImmutable();
+        }
+
         return omega;
     }
 
