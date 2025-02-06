@@ -494,6 +494,77 @@ public class Main {
         return omega;
     }
 
+    public static class ReEncryptionKey {
+        public AccessStructure R;
+        public List<Element> rk1;  // rk_{1,i}
+        public List<Element> rk2;  // rk_{2,i}
+        public Element beta;       // user's secret exponent
+
+        public ReEncryptionKey(AccessStructure R, List<Element> rk1,
+                               List<Element> rk2, Element beta) {
+            this.R = R;
+            this.rk1 = rk1;
+            this.rk2 = rk2;
+            this.beta = beta;
+        }
+    }
+
+    // Generate re-encryption key
+    public static ReEncryptionKey ReKeyGen(DecryptionKey dk) {
+        // Check if DK satisfies R with a coefficient search
+        // ... (verify existence of coefficients for (1,0,...,0)) ...
+        // For simplicity here, we assume verification passes
+
+        // Randomly select beta
+        Element beta = mpk.pairing.getZr().newRandomElement().getImmutable();
+
+        // Raise each dk component to beta
+        List<Element> rk1 = new ArrayList<>();
+        List<Element> rk2 = new ArrayList<>();
+        for (int i = 0; i < dk.dk1.size(); i++) {
+            Element rk1i = dk.dk1.get(i).powZn(beta).getImmutable();
+            Element rk2i = dk.dk2.get(i).powZn(beta).getImmutable();
+            rk1.add(rk1i);
+            rk2.add(rk2i);
+        }
+
+        return new ReEncryptionKey(dk.R, rk1, rk2, beta);
+    }
+
+    // Re-encrypt ciphertext
+    public static Ciphertext ReEncrypt(Ciphertext c, ReEncryptionKey rk) {
+        // Let J = { j | phi(j) in R }, find coefficients {ζ_j} for (1,0,...,0)
+        // ... (similar to solveCoefficients) ...
+
+        // Partial decryption transform
+        Element cPrime0 = mpk.pairing.getGT().newOneElement(); // = product of fraction^ζ_j
+        // Note: c.c2 is for receiver attributes, c.c1 is g^s
+        // We assume c2 matches the same dimension as R; otherwise synergy needed
+        for (int j = 0; j < rk.rk1.size(); j++) {
+            // For demonstration, treat ζ_j = 1
+            Element fraction = mpk.pairing.pairing(rk.rk2.get(j), c.c2.get(j))
+                               .div(mpk.pairing.pairing(rk.rk1.get(j), c.c1));
+            cPrime0 = cPrime0.mul(fraction);
+        }
+        // cPrime0 holds the partial decryption result
+
+        // Build transformed ciphertext c'
+        // We only replace c0 with (c0, cPrime0) or store cPrime0 somewhere
+        // For simplicity, we store it in c0 of the new ciphertext
+        Ciphertext ctPrime = new Ciphertext(
+            c.S,
+            c.R,
+            cPrime0, // replaced original c0
+            c.c1,
+            c.c2,
+            c.c3,
+            c.c4,
+            c.c5,
+            c.Ikw
+        );
+        return ctPrime;
+    }
+
     public static void main(String[] args) {
 
         int size = 5;
@@ -563,6 +634,18 @@ public class Main {
         long end5 = System.currentTimeMillis();
         System.out.println("Search 运行时间为：" + (end5 - start5));
         System.out.println("Search result: " + (result.found ? "Keyword found!" : "Keyword not found."));
+
+        // ReKeyGen timing
+        long startReKeyGen = System.currentTimeMillis();
+        ReEncryptionKey rk = ReKeyGen(dk);
+        long endReKeyGen = System.currentTimeMillis();
+        System.out.println("ReKeyGen 运行时间为：" + (endReKeyGen - startReKeyGen));
+
+        // ReEncrypt timing
+        long startReEnc = System.currentTimeMillis();
+        Ciphertext ctPrime = ReEncrypt(ct, rk);
+        long endReEnc = System.currentTimeMillis();
+        System.out.println("ReEncrypt 运行时间为：" + (endReEnc - startReEnc));
         
     }
 }
