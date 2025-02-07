@@ -2,6 +2,9 @@ package org.example.helpers;
 
 import java.util.*;
 
+import it.unisa.dia.gas.jpbc.Element;
+import it.unisa.dia.gas.jpbc.Pairing;
+
 public class Util {
     public static Set<String> generateRandomAttributes(int size) {
         Set<String> attrs = new HashSet<>();
@@ -76,5 +79,42 @@ public class Util {
         System.out.println("Attribute mapping: " + Arrays.toString(phi));
         
         return new AccessStructure(matrix, phi);
+    }
+
+    public static boolean verifyOmegaCoefficients(Pairing pairing, int[][] matrix, Element[] omega) {
+        if (omega == null || matrix == null || matrix.length == 0) {
+            return false;
+        }
+        
+        int cols = matrix[0].length;
+        Element[] result = new Element[cols];
+        
+        // Initialize result array with zero elements
+        for (int j = 0; j < cols; j++) {
+            result[j] = pairing.getZr().newElement(0);
+        }
+        
+        // Compute Σ ω_i * M_i
+        for (int i = 0; i < matrix.length; i++) {
+            for (int j = 0; j < cols; j++) {
+                result[j] = result[j].add(omega[i].duplicate().mul(matrix[i][j]));
+            }
+        }
+        
+        System.out.println(result);
+
+        // Check if result equals (1,0,...,0)
+        for (int j = 0; j < cols; j++) {
+            if (j == 0 && !result[j].isOne()) {
+                System.out.println("First element is not 1: " + result[j]);
+                return false;
+            }
+            if (j > 0 && !result[j].isZero()) {
+                System.out.println("Element at position " + j + " is not 0: " + result[j]);
+                return false;
+            }
+        }
+        
+        return true;
     }
 }

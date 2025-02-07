@@ -7,6 +7,8 @@ import it.unisa.dia.gas.plaf.jpbc.pairing.PairingFactory;
 
 import java.util.*;
 
+import org.example.helpers.Util;
+
 public class belelDemo {
 
     private static Pairing pairing;
@@ -174,6 +176,9 @@ public class belelDemo {
 
         // 计算常量 w_z
         Element[] w_z = computeLagrangeConstants(pairing, A, I);
+        boolean isValid = Util.verifyOmegaCoefficients(pairing,A, w_z);
+        System.out.println("Omega verification result: " + (isValid ? "VALID" : "INVALID"));
+
 
         // 计算每个 z ∈ I 的 B_z
         Element numerator = pairing.getGT().newOneElement();
@@ -242,7 +247,7 @@ public class belelDemo {
 
     public static void main(String[] args) {
         //pairing = PairingFactory.getPairing("E:/java program/large universe/database/Ours/prime.properties");
-        pairing = PairingFactory.getPairing("./prime.properties");
+        pairing = PairingFactory.getPairing("lib/prime.properties");
         PairingFactory.getInstance().setUsePBCWhenPossible(true);
         String[] baseAttributes = {"doctor", "hospital", "nurse", "patient", "pharmacist", "researcher", "administrator", "technician", "staff", "volunteer"};
         String[] attributes = {};
