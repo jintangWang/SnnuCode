@@ -329,7 +329,12 @@ public class Main {
     // 改进 Search 算法实现
     public static SearchResult Search(AccessStructure S, Ciphertext ct, SearchTrapdoor Tkw) {
         // 先调用Verify检查
-        if (!Verify(S, ct)) {
+        long startVerify = System.currentTimeMillis();
+        boolean isValid = Verify(S, ct);
+        long endVerify = System.currentTimeMillis();
+        System.out.println("Verify 运行时间为：" + (endVerify - startVerify));
+
+        if (!isValid) {
             return new SearchResult(false, null);
         }
 
