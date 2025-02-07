@@ -611,6 +611,14 @@ public class Main {
         return ctPrime;
     }
 
+    public static Element Decrypt(Ciphertext ctPrime, Element beta) {
+        // Decrypt the transformed ciphertext
+        Element cPrime0 = ctPrime.c0;
+        Element betaInv = beta.duplicate().invert().getImmutable();
+        Element message = cPrime0.powZn(betaInv).getImmutable();
+        return message;
+    }
+
     public static void main(String[] args) {
 
         int size = 5;
@@ -692,6 +700,14 @@ public class Main {
         Ciphertext ctPrime = ReEncrypt(ct, rk);
         long endReEnc = System.currentTimeMillis();
         System.out.println("ReEncrypt 运行时间为：" + (endReEnc - startReEnc));
+
+        // Decrypt timing
+        long startDec = System.currentTimeMillis();
+        Element decryptedMessage = Decrypt(ctPrime, rk.beta);
+        long endDec = System.currentTimeMillis();
+        System.out.println("Decrypt 运行时间为：" + (endDec - startDec));
+        System.out.println("Decrypted message: " + decryptedMessage);
+        
         
     }
 }
