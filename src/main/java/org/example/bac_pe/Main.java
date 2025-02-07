@@ -654,7 +654,7 @@ public class Main {
 
         String csvFilePath = "data/bac_pe_timing_data.csv";
 
-        try (FileWriter csvWriter = new FileWriter(csvFilePath, true)) {
+        try (FileWriter csvWriter = new FileWriter(csvFilePath, false)) {
             csvWriter.append("Attribute,Size" + (char) size).append(String.valueOf(size)).append("\n");
 
             // Setup
