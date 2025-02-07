@@ -35,34 +35,38 @@ public class Util {
     public static AccessStructure generateAccessStructure(String[] baseAttributes, int size) {
         // 确保矩阵至少为 2x2
         size = Math.max(2, size);
-        
-        // 创建 size × size 的访问矩阵
+
+        // 创建 size × size 的单位矩阵
         int[][] matrix = new int[size][size];
-        Random random = new Random();
-    
-        // 确保第一行至少有一个非零元素,
-        // 如果第一行全为0，在密钥生成和解密时:
-        // 计算 Mx = y 时，y 的第一个分量将始终为0
-        // 这会导致无法正确重构秘密值 s
-        for (int j = 0; j < size; j++) {
-            matrix[0][j] = random.nextInt(2); // 生成0或1
-        }
-        // 如果第一行全为0，强制设置第一个元素为1
-        boolean allZeros = true;
-        for (int j = 0; j < size; j++) {
-            if (matrix[0][j] != 0) {
-                allZeros = false;
-                break;
-            }
-        }
-        if (allZeros) {
-            matrix[0][0] = 1;
+        for (int i = 0; i < size; i++) {
+            matrix[i][i] = 1;
         }
 
-        // 生成其余行
-        for (int i = 1; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                matrix[i][j] = random.nextInt(2);
+        Random random = new Random();
+
+        // 应用随机行操作以保持非奇异性
+        for (int k = 0; k < size * 3; k++) { // 迭代多次以充分混合
+            int row1 = random.nextInt(size);
+            int row2 = random.nextInt(size);
+            if (row1 != row2) {
+                int operation = random.nextInt(3); // 0: swap, 1: add, 2: subtract
+                switch (operation) {
+                    case 0: // 交换行
+                        int[] temp = matrix[row1];
+                        matrix[row1] = matrix[row2];
+                        matrix[row2] = temp;
+                        break;
+                    case 1: // 将 row2 加到 row1
+                        for (int j = 0; j < size; j++) {
+                            matrix[row1][j] = (matrix[row1][j] + matrix[row2][j]) % 2;
+                        }
+                        break;
+                    case 2: // 将 row2 从 row1 中减去
+                        for (int j = 0; j < size; j++) {
+                            matrix[row1][j] = (matrix[row1][j] - matrix[row2][j] + 2) % 2; // 确保结果为正
+                        }
+                        break;
+                }
             }
         }
 
@@ -71,14 +75,56 @@ public class Util {
         for (int i = 0; i < size; i++) {
             phi[i] = baseAttributes[i % baseAttributes.length];
         }
-        
+
         System.out.println("Generated Access Matrix:");
         for (int i = 0; i < size; i++) {
             System.out.println(Arrays.toString(matrix[i]));
         }
+
+        boolean singular = isSingular(matrix);
+        System.out.println("Matrix is singular: " + singular);
+
         System.out.println("Attribute mapping: " + Arrays.toString(phi));
-        
         return new AccessStructure(matrix, phi);
+    }
+
+    private static boolean isSingular(int[][] matrix) {
+        int size = matrix.length;
+        int[][] tempMatrix = new int[size][size];
+        for (int i = 0; i < size; i++) {
+            tempMatrix[i] = matrix[i].clone();
+        }
+
+        for (int i = 0; i < size; i++) {
+            // Find pivot
+            if (tempMatrix[i][i] == 0) {
+                int swapRow = -1;
+                for (int j = i + 1; j < size; j++) {
+                    if (tempMatrix[j][i] != 0) {
+                        swapRow = j;
+                        break;
+                    }
+                }
+                if (swapRow == -1) {
+                    return true; // Singular
+                }
+                // Swap rows
+                int[] temp = tempMatrix[i];
+                tempMatrix[i] = tempMatrix[swapRow];
+                tempMatrix[swapRow] = temp;
+            }
+
+            // Eliminate below
+            int pivot = tempMatrix[i][i];
+            for (int k = i + 1; k < size; k++) {
+                int factor = tempMatrix[k][i] / pivot;
+                for (int j = i; j < size; j++) {
+                    tempMatrix[k][j] -= factor * tempMatrix[i][j];
+                }
+            }
+        }
+
+        return false; // Non-singular
     }
 
     public static boolean verifyOmegaCoefficients(Pairing pairing, int[][] matrix, Element[] omega) {
