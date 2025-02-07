@@ -176,8 +176,6 @@ public class belelDemo {
 
         // 计算常量 w_z
         Element[] w_z = computeLagrangeConstants(pairing, A, I);
-        boolean isValid = Util.verifyOmegaCoefficients(pairing,A, w_z);
-        System.out.println("Omega verification result: " + (isValid ? "VALID" : "INVALID"));
 
 
         // 计算每个 z ∈ I 的 B_z
