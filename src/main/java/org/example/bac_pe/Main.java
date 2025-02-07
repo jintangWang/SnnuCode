@@ -696,13 +696,10 @@ public class Main {
         System.out.println("Search result: " + (result.found ? "Keyword found!" : "Keyword not found."));
 
         // ReKeyGen timing
-        long startReKeyGen = System.currentTimeMillis();
+        long startReEnc = System.currentTimeMillis();
         ReEncryptionKey rk = ReKeyGen(dk);
-        long endReKeyGen = System.currentTimeMillis();
-        System.out.println("ReKeyGen 运行时间为：" + (endReKeyGen - startReKeyGen));
 
         // ReEncrypt timing
-        long startReEnc = System.currentTimeMillis();
         Ciphertext ctPrime = ReEncrypt(ct, rk);
         long endReEnc = System.currentTimeMillis();
         System.out.println("ReEncrypt 运行时间为：" + (endReEnc - startReEnc));
