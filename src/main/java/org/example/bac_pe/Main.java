@@ -669,6 +669,7 @@ public class Main {
         long start3 = System.currentTimeMillis();
         Set<String> receiverAttrs = Util.generateAttributes(baseAttributes, size);
         Element message = mpk.pairing.getGT().newRandomElement().getImmutable();
+        System.out.println("Original message: " + message);
         Set<String> keywords = new HashSet<>(Arrays.asList("clinical_trial", "phase1"));
         Ciphertext ct = Encrypt(ek, receiverAttrs, senderAttrs, message, keywords);
         long end3 = System.currentTimeMillis();
