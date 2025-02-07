@@ -13,6 +13,9 @@ import java.util.function.Function;
 import org.example.helpers.AccessStructure;
 import org.example.helpers.Util;
 
+import java.io.FileWriter;
+import java.io.IOException;
+
 public class Main {
 
     public static class MPK {
@@ -649,68 +652,84 @@ public class Main {
                 "ethics_committee"
         };
 
-        // Setup
-        long start = System.currentTimeMillis();
-        setup();
-        long end = System.currentTimeMillis();
-        System.out.println("setup 运行时间为：" + (end - start));
+        String csvFilePath = "data/bac_pe_timing_data.csv";
 
-        // Generate encryption key
-        long start1 = System.currentTimeMillis();
-        Set<String> senderAttrs = Util.generateAttributes(baseAttributes, size);
-        EncryptionKey ek = EKGen(msk, senderAttrs);
-        long end1 = System.currentTimeMillis();
-        System.out.println("EKGen 运行时间为：" + (end1 - start1));
+        try (FileWriter csvWriter = new FileWriter(csvFilePath, true)) {
+            csvWriter.append("Attribute,Size" + (char) size).append(String.valueOf(size)).append("\n");
 
-        // Generate decryption key
-        long start2 = System.currentTimeMillis();
-        AccessStructure accessStructure = Util.generateAccessStructure(baseAttributes, size);
-        Element bf = mpk.pairing.getZr().newRandomElement().getImmutable();
-        DecryptionKey dk = DKGen(msk, accessStructure, bf);
-        long end2 = System.currentTimeMillis();
-        System.out.println("DKGen 运行时间为：" + (end2 - start2));
+            // Setup
+            long start = System.currentTimeMillis();
+            setup();
+            long end = System.currentTimeMillis();
+            System.out.println("setup 运行时间为：" + (end - start));
+            csvWriter.append("Setup,").append(String.valueOf(end - start)).append("\n");
 
-        // Encrypt
-        long start3 = System.currentTimeMillis();
-        Set<String> receiverAttrs = Util.generateAttributes(baseAttributes, size);
-        Element message = mpk.pairing.getGT().newRandomElement().getImmutable();
-        System.out.println("Original message: " + message);
-        Set<String> keywords = new HashSet<>(Arrays.asList("clinical_trial", "phase1"));
-        Ciphertext ct = Encrypt(ek, receiverAttrs, senderAttrs, message, keywords);
-        long end3 = System.currentTimeMillis();
-        System.out.println("Encrypt 运行时间为：" + (end3 - start3));
+            // Generate encryption key
+            long start1 = System.currentTimeMillis();
+            Set<String> senderAttrs = Util.generateAttributes(baseAttributes, size);
+            EncryptionKey ek = EKGen(msk, senderAttrs);
+            long end1 = System.currentTimeMillis();
+            System.out.println("EKGen 运行时间为：" + (end1 - start1));
+            csvWriter.append("EKGen,").append(String.valueOf(end1 - start1)).append("\n");
 
+            // Generate decryption key
+            long start2 = System.currentTimeMillis();
+            AccessStructure accessStructure = Util.generateAccessStructure(baseAttributes, size);
+            Element bf = mpk.pairing.getZr().newRandomElement().getImmutable();
+            DecryptionKey dk = DKGen(msk, accessStructure, bf);
+            long end2 = System.currentTimeMillis();
+            System.out.println("DKGen 运行时间为：" + (end2 - start2));
+            csvWriter.append("DKGen,").append(String.valueOf(end2 - start2)).append("\n");
 
-        // Generate trapdoor for keyword
-        long start4 = System.currentTimeMillis();
-        String keyword = "clinical_trial";
-        SearchTrapdoor td = Trapdoor(dk.QK, bf, keyword);
-        long end4 = System.currentTimeMillis();
-        System.out.println("Trapdoor 运行时间为：" + (end4 - start4));
+            // Encrypt
+            long start3 = System.currentTimeMillis();
+            Set<String> receiverAttrs = Util.generateAttributes(baseAttributes, size);
+            Element message = mpk.pairing.getGT().newRandomElement().getImmutable();
+            System.out.println("Original message: " + message);
+            Set<String> keywords = new HashSet<>(Arrays.asList("clinical_trial", "phase1"));
+            Ciphertext ct = Encrypt(ek, receiverAttrs, senderAttrs, message, keywords);
+            long end3 = System.currentTimeMillis();
+            System.out.println("Encrypt 运行时间为：" + (end3 - start3));
+            csvWriter.append("Encrypt,").append(String.valueOf(end3 - start3)).append("\n");
 
-        // 执行 Search 算法
-        long start5 = System.currentTimeMillis();
-        SearchResult result = Search(accessStructure, ct, td);
-        long end5 = System.currentTimeMillis();
-        System.out.println("Search 运行时间为：" + (end5 - start5));
-        System.out.println("Search result: " + (result.found ? "Keyword found!" : "Keyword not found."));
+           // Generate trapdoor for keyword
+            long start4 = System.currentTimeMillis();
+            String keyword = "clinical_trial";
+            SearchTrapdoor td = Trapdoor(dk.QK, bf, keyword);
+            long end4 = System.currentTimeMillis();
+            System.out.println("Trapdoor 运行时间为：" + (end4 - start4));
+            csvWriter.append("Trapdoor,").append(String.valueOf(end4 - start4)).append("\n");
 
-        // ReKeyGen timing
-        long startReEnc = System.currentTimeMillis();
-        ReEncryptionKey rk = ReKeyGen(dk);
+            // 执行 Search 算法
+            long start5 = System.currentTimeMillis();
+            SearchResult result = Search(accessStructure, ct, td);
+            long end5 = System.currentTimeMillis();
+            System.out.println("Search 运行时间为：" + (end5 - start5));
+            csvWriter.append("Search,").append(String.valueOf(end5 - start5)).append("\n");
 
-        // ReEncrypt timing
-        Ciphertext ctPrime = ReEncrypt(ct, rk);
-        long endReEnc = System.currentTimeMillis();
-        System.out.println("ReEncrypt 运行时间为：" + (endReEnc - startReEnc));
+            // ReKeyGen timing
+            long startReEnc = System.currentTimeMillis();
+            ReEncryptionKey rk = ReKeyGen(dk);
 
-        // Decrypt timing
-        long startDec = System.currentTimeMillis();
-        Element decryptedMessage = Decrypt(ctPrime, rk.beta);
-        long endDec = System.currentTimeMillis();
-        System.out.println("Decrypt 运行时间为：" + (endDec - startDec));
-        System.out.println("Decrypted message: " + decryptedMessage);
-        
-        
+            // ReEncrypt timing
+            Ciphertext ctPrime = ReEncrypt(ct, rk);
+            long endReEnc = System.currentTimeMillis();
+            System.out.println("ReEncrypt 运行时间为：" + (endReEnc - startReEnc));
+            csvWriter.append("ReEncrypt,").append(String.valueOf(endReEnc - startReEnc)).append("\n");
+
+            // Decrypt timing
+            long startDec = System.currentTimeMillis();
+            Element decryptedMessage = Decrypt(ctPrime, rk.beta);
+            long endDec = System.currentTimeMillis();
+            System.out.println("Decrypt 运行时间为：" + (endDec - startDec));
+            System.out.println("Decrypted message: " + decryptedMessage);
+            csvWriter.append("Decrypt,").append(String.valueOf(endDec - startDec)).append("\n");
+
+            csvWriter.flush();
+            System.out.println("CSV data written to " + csvFilePath);
+
+        } catch (IOException e) {
+            System.err.println("Could not write to file: " + e.getMessage());
+        }
     }
 }
