@@ -9,6 +9,28 @@
 \title{CFDS}
 
 \section{Construction}
+$\mathbf{Setup}( 1^\lambda ) {: }\textit{ Let e}: \mathbb{G} \times \mathbb{G} \to \mathbb{G} _T\textit{ be a symmetric pairing, and P a generator of G}, with$
+$\mathbb{G} , and$ $\mathbb{G} _T$ of an order q that depends on $\lambda . \textit{We also have three hash functions}$ $H:\{0,1\}^*\to\mathbb{G},H^{\prime}:\{0,1\}^*\to\mathbb{G},\hat{H}:\mathbb{G}_T\to\{0,1\}^\ell,modeled$ as random $oracles,and$ $a$ polynomial-time computable padding function $\Phi :$ $\{ 0, 1\} ^n\to$ $\{0,1\}^\ell.$ We require that for all m $\in\{0,1\}^n$ one can verify in polynomial time if m has been padded correctly, and moreover that $\Phi ( m) is\textit{ efficiently invertible. On}$ input the security parameter 1$^\lambda$, the setup algorithm samples two random values $r,s\in\mathbb{Z}_q,and$ sets $P_0= P^r. Finally, it\textit{outputs the master public key mpk }=(e,\mathbb{G},\mathbb{G}_T,q,P,P_0,H,H^{\prime},\hat{H},\Phi)$ and the master secret key is msk = (r,s).Recall that all other algorithms are implicitly given $mpk$ as input.
 
+$\mathsf{SKGen}( \mathsf{msk}, \sigma ) {: }\textit{ On input the master secret key msk,  and identity }\sigma , the$ algorithm
+$o\textit{utputs ek}_\sigma=H^{\prime}(\sigma)^s.$
+
+$\mathsf{RKGen}( \mathsf{mpk}, \mathsf{msk}, \rho ) {: }\textit{ On input the master secret key msk,  and identity }\rho , the algo$
+rithmoutputs dk$_\rho=(\mathbf{d}\mathbf{k}_\rho^1,\mathbf{d}\mathbf{k}_\rho^2,\mathbf{d}\mathbf{k}_\rho^3)=(H(\rho)^r,H(\rho)^s,H(\rho)).$
+
+$\mathsf{Enc}( \mathsf{mpk}, \mathsf{ek}_\sigma , \mathsf{rcv}, m) {: }\textit{ On input an encryption key ek}_\sigma , a$ target identity rcv $=\rho$,
+and a message $m\in\{0,1\}^n,the$ algorithm proceeds as follows:
+$l.$ Sample random u,  $t\in \mathbb{Z} _q.$ Sample random u,  $t\in \mathbb{Z} _q.$
+$2. \textit{Compute}T= P^t$ and $U=P^u.$
+3. Compute $k_R= e( H( \rho ) , P_0^u) \textit{and }k_S= e( H( \rho ) , T\cdot \mathbf{ek}_\sigma ) .$
+4. Compute $V=\Phi(m)\oplus\hat{H}(k_R)\oplus\hat{H}(k_S).$
+$5. \textit{ Output ciphertext C}= ( T, U, V) .$
+
+$\mathsf{Dec}( \mathsf{mpk}, \mathsf{dk}_\rho , \mathsf{snd}, c) {: }\textit{ On input the master public key mpk,  }a\textit{ decryption key dk}_\rho , a$
+target identity snd$=\sigma,and$ a message m, the algorithm proceeds as follows.
+$l. \textit{ Parse c as }( T, U, V) _1$
+2. Compute $k_R=e(\mathbf{d}\mathbf{k}_\rho^1,U)$ and $k_S=e(\mathbf{d}\mathbf{k}_\rho^2,H^{\prime}(\sigma))\cdot e(\mathbf{d}\mathbf{k}_\rho^3,T).$
+$3. \textit{Compute}( m) = V\oplus \hat{H} ( k_R) \oplus \hat{H} ( k_S)$
+$4. \textit{ If the padding is valid,  return m.  Otherwise,  return }\bot .$
 
 \end{document}
