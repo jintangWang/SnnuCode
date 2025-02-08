@@ -1,0 +1,58 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\setlength{\parindent}{1em}
+\usepackage{graphicx}
+\begin{document}
+\title{CFDS}
+
+\section{Construction}
+$\mathbf{Setup}(1^\lambda).$ The setup algorithm runs the pairing group generator $\mathcal{G}(1^\lambda)$ to generate the description of bilinear group $(p,\mathbb{G},\mathbb{G}_T,e,g)$, and randomly picks $\alpha,\beta\in\mathbb{Z}_p$ and three hash functions $\mathcal{H}_1,\mathcal{H}_2,\mathcal{H}_3$
+
+$$\mathcal{H}_1:\Omega_{\mathrm{snd}}\to\mathbb{G},\quad\mathcal{H}_2:\Omega_{\mathrm{rcv}}\to\mathbb{G},\quad\mathcal{H}_3:\left\{0,1\right\}^*\to\mathbb{G},$$
+
+where $\mathcal{H}_3$ is a collision-resistant hash function, and $\mathcal{H}_1$ and $\mathcal{H}_2$ are modelled as random oracles. The algorithm returns the master public key mpk and the master private key mpk
+
+$$mpk=(p,\mathbb{G},\mathbb{G}_T,e,g,\mathcal{H}_1,\mathcal{H}_2,\mathcal{H}_3,e(g,g)^\alpha,e(g,g)^\beta),
+\\ msk=(g^\alpha,g^\beta).$$
+
+$\mathbf{EKGen}(msk,\mathcal{S}).$ Parse the set of sender's attributes $S=$ $(att_{\mathbf{snd},1},att_{\mathbf{snd},2},\ldots,att_{\mathbf{snd},k}).$ The encryption key generation algorithm randomly picks $r\in\mathbb{Z}_p$ and for $i\in[k]$,it computes
+
+$$ek_{1,i}=g^\alpha\mathcal{H}_1(att_{\mathsf{snd},i})^r,\quad ek_2=g^r.$$
+
+The algorithm returns the encryption key $ek=\left(\mathcal{S},\left\{ek_{1,i}\right\}_{i\in[k]},\right.ek_2).$
+
+$\mathbf{DKGen}(msk,\mathbb{R}).$ Parse the access structure of the receiver $\mathbb{R}=(\mathbb{N},\pi)$,where $\mathbb{N}\in\mathbb{Z}p^{\ell_\mathbb{N}\times n_\mathbb{N}}$ is a matrix and $\pi:[\ell_\mathbb{N}]\to\Omega_\mathrm{rcv}$ is a mapping function. The decryption key generation algorithm randomly picks $\vec{y}=(\beta,y_2,\ldots,y_{n_\mathbb{N}})^\perp\in\mathbb{Z}p^{n_\mathbb{N}\times1}$ and computes $\vec{\lambda}=(\lambda_1,\lambda_2,\ldots,\lambda_{\ell_\mathbb{N}})=\mathbb{N}\vec{y}.$ For $i\in[\ell_\mathbb{N}]$, it randomly chooses ${r_i}\in\mathbb{Z}_p$ and computes
+
+$$dk_{1,i}=g^{\lambda_i}\mathcal{H}_2(\pi(i))^{r_i},\quad dk_{2,i}=g^{r_i}.$$
+
+The algorithm returns the decryption key $dk=((\mathbb{N},\pi),\{ dk_{1, i}, dk_{2, i} \} _{i\in [ \ell _{\mathbb{N} }] }) .$
+
+$\mathbf{Enc}(ek,\mathcal{R},\mathcal{S}^{\prime},m).$ Parse the set of receiver's attributes $\mathcal{R}=(att_{\mathbf{rcv},1},att_{\mathbf{rcv},2},\ldots,att_{\mathbf{rcv},l})$ and the set of sender's attributes $S^\prime=(att_{\mathbf{snd},1},att_{\mathbf{snd},2},\ldots,att_{\mathbf{snd},k^{\prime}})$, where $S^\prime$ is the subset of sender's attributes $S$ defined in the encryption key $ek,s.t.\mathcal{S}^{\prime}\subseteq\mathcal{S}.$ The encryption algorithm randomly picks $s,r',t\in\mathbb{Z}_p$,and for $i\in[l]$,it computes
+
+$$c_0=m\cdot e(g,g)^{\beta s},\quad c_1=g^s,\quad c_{2,i}=\mathcal{H}(att_{\mathsf{rcv},i})^s,
+\\c_3=ek_2\cdot g^{r^{\prime}}=g^{r+r^{\prime}},\quad c_4=g^t.$$
+
+Let $c_{1-4}$ denote a binary string as $c_{1-4}=c_0\|c_1\|c_{2,i}\|\cdots\|c_{2,l}\|$ $c_{3}\|c_{4}.$ For $i^\prime\in[k^{\prime}]$, it finds $j$ such that $att_{\mathrm{snd},i^{\prime}}=att_{\mathrm{snd},j}$ $(j$ exists due to $\mathcal{S}^\prime\subseteq\mathcal{S})$ and computes:
+
+$$ek_{1,i^{\prime}}=ek_{1,j}\cdot\mathcal{H}_{1}(att_{\mathrm{snd},i^{\prime}})^{r^{\prime}}=g^{\alpha}\mathcal{H}_{1}(att_{\mathrm{snd},i^{\prime}})^{r+r^{\prime}},
+\\c_{5,i^{\prime}}=ek_{1,i^{\prime}}\cdot\mathcal{H}_{3}(c_{1-4})^{t}=g^{\alpha}\mathcal{H}_{1}(att_{\mathrm{snd},i^{\prime}})^{r+r^{\prime}}\mathcal{H}_{3}(c_{1-4})^{t}.$$
+The algorithm returns the ciphertext $c=((\mathcal{S},\mathcal{R}^{\prime}),c_{0},c_{1},\{c_{2,i}\}_{i\in[l]},c_{3},c_{4},\{c_{5,i^{\prime}}\}_{i^{\prime}\in[k^{\prime}]})$.
+
+$\mathbf{Verify}(\mathbb{S},c).$ Parse the access structure of the sender $\mathbb{S}=(\mathbb{M},\rho)$, where $\mathbb{M}\in\mathbb{Z}p^{\ell_{\mathbb{M}}\times n_{\mathbb{M}}}$ is a matrix and $\rho:[\ell_\mathbb{M}]\to \Omega_\mathsf{snd}$ is a mapping function. The verification algorithm randomly picks $\vec{x}=(1,x_{2},\ldots,x_{n_{\mathbb{M}}})^{\perp}\in\mathbb{Z}_{p}^{n_{\mathbb{M}}\times1}$ and computes
+$\vec{\kappa}=(\kappa_1,\kappa_2,\ldots,\kappa_{\ell_{\mathbb{M}}})=\mathbb{M}\vec{x}.$ Let $I$ be the set $s.t.I=\{i|i\in$ $[ \ell_{\mathrm{M} }] , \rho ( i) = \mathcal{S} \} .$ It finds $\{\omega_i\}_{i\in I}$ such that $\sum_{i\in I}\omega\mathbb{M}_i=$ $(1,0,\ldots,0)$ and returns 1 if the following equality holds:
+
+$$\prod_{i\in I}\left(\frac{e(c_{5,i},g)}{e(\mathcal{H}_1(att_{\mathsf{snd},i}),c_3)\cdot e(\mathcal{H}_3(c_{1-4}),c_4)}\right)^{\kappa_i\omega_i}\overset{?}{\operatorname*{=}}e(g,g)^\alpha;$$
+
+otherwise, the algorithm returns 0.
+
+$\mathbf{Dec}(dk,c).$ Let $J$ be the set such that $J=\{j|j\in[\ell_{\mathbb{N}}]$, $\pi(j)=\mathcal{R}\}.$ The decryption algorithm takes terms $\{\eta\}_{j\in J}$ such $\mathop{\mathrm{that}}\sum_{j\in J}\eta\mathbb{N}_{j}=(1,0,\ldots,0)$ and computes
+
+$$c_0\cdot\prod_{j\in J}\left(\frac{e(dk_{2,i},c_{2,j})}{e(dk_{1,i},c_1)}\right)^{\eta_j}=m,$$
+
+where $i$ is the index of the attribute $\pi(i)$ in $\mathcal{R}$ $s.t.$
+$\pi(i)=att_{\mathrm{rcv},j}.$ The algorithm returns the message $m.$
+
+\end{document}
