@@ -659,9 +659,9 @@ public class Main {
 
             // 修改数据行的初始化
             List<String[]> dataRows = new ArrayList<>();
-            for (int i = 0; i < 8; i++) {
-                String[] row = new String[targetSize - 4 + 2];  // 增加一列用于算法名称
-                row[0] = getAlgorithmName(i);  // 设置第一列为算法名称
+            for (int i = 0; i < 9; i++) {  // 改为9个算法包含Verify
+                String[] row = new String[targetSize - 4 + 2];
+                row[0] = getAlgorithmName(i);
                 dataRows.add(row);
             }
 
@@ -713,12 +713,19 @@ public class Main {
                 System.out.println("Trapdoor 运行时间为：" + (end4 - start4));
                 dataRows.get(4)[size - 4 + 1] = String.valueOf(end4 - start4);
 
-                // 执行 Search 算法
+                // 添加单独的 Verify 计时
+                long startVerify = System.currentTimeMillis();
+                boolean verified = Verify(accessStructure, ct);
+                long endVerify = System.currentTimeMillis();
+                System.out.println("Verify 运行时间为：" + (endVerify - startVerify));
+                dataRows.get(5)[size - 4 + 1] = String.valueOf(endVerify - startVerify);
+
+                // Search timing (now at index 6)
                 long start5 = System.currentTimeMillis();
                 SearchResult result = Search(accessStructure, ct, td);
                 long end5 = System.currentTimeMillis();
                 System.out.println("Search 运行时间为：" + (end5 - start5));
-                dataRows.get(5)[size - 4 + 1] = String.valueOf(end5 - start5);
+                dataRows.get(6)[size - 4 + 1] = String.valueOf(end5 - start5);
 
                 // ReKeyGen timing
                 long startReEnc = System.currentTimeMillis();
@@ -728,7 +735,7 @@ public class Main {
                 Ciphertext ctPrime = ReEncrypt(ct, rk);
                 long endReEnc = System.currentTimeMillis();
                 System.out.println("ReEncrypt 运行时间为：" + (endReEnc - startReEnc));
-                dataRows.get(6)[size - 4 + 1] = String.valueOf(endReEnc - startReEnc);
+                dataRows.get(7)[size - 4 + 1] = String.valueOf(endReEnc - startReEnc);
 
                 // Decrypt timing
                 long startDec = System.currentTimeMillis();
@@ -736,7 +743,7 @@ public class Main {
                 long endDec = System.currentTimeMillis();
                 System.out.println("Decrypt 运行时间为：" + (endDec - startDec));
                 System.out.println("Decrypted message: " + decryptedMessage);
-                dataRows.get(7)[size - 4 + 1] = String.valueOf(endDec - startDec);
+                dataRows.get(8)[size - 4 + 1] = String.valueOf(endDec - startDec);
             }
 
             // Write data to CSV file
@@ -764,9 +771,10 @@ public class Main {
             case 2: return "DKGen";
             case 3: return "Encrypt";
             case 4: return "Trapdoor";
-            case 5: return "Search";
-            case 6: return "ReEncrypt";
-            case 7: return "Decrypt";
+            case 5: return "Verify";    // 添加 Verify
+            case 6: return "Search";    // 后移一位
+            case 7: return "ReEncrypt"; // 后移一位
+            case 8: return "Decrypt";   // 后移一位
             default: return "";
         }
     }
