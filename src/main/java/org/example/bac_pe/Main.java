@@ -650,17 +650,18 @@ public class Main {
         int targetSize = 50;
 
         try (FileWriter csvWriter = new FileWriter(csvFilePath, false)) {
+            // 修改CSV header的写入方式
             csvWriter.append("Algorithm");
             for (int size = 4; size <= targetSize; size++) {
-                csvWriter.append(",size").append(String.valueOf(size));
+                csvWriter.append(",").append(String.valueOf(size));
             }
             csvWriter.append("\n");
 
-            // Prepare data for each algorithm
+            // 修改数据行的初始化
             List<String[]> dataRows = new ArrayList<>();
             for (int i = 0; i < 8; i++) {
-                String[] row = new String[targetSize - 4 + 1]; // Adjust size based on starting size
-                row[0] = getAlgorithmName(i); // Set algorithm name
+                String[] row = new String[targetSize - 4 + 2];  // 增加一列用于算法名称
+                row[0] = getAlgorithmName(i);  // 设置第一列为算法名称
                 dataRows.add(row);
             }
 
@@ -674,7 +675,7 @@ public class Main {
                 setup();
                 long end = System.currentTimeMillis();
                 System.out.println("setup 运行时间为：" + (end - start));
-                dataRows.get(0)[size - 4] = String.valueOf(end - start);
+                dataRows.get(0)[size - 4 + 1] = String.valueOf(end - start);
 
                 // Generate encryption key
                 long start1 = System.currentTimeMillis();
@@ -682,7 +683,7 @@ public class Main {
                 EncryptionKey ek = EKGen(msk, senderAttrs);
                 long end1 = System.currentTimeMillis();
                 System.out.println("EKGen 运行时间为：" + (end1 - start1));
-                dataRows.get(1)[size - 4] = String.valueOf(end1 - start1);
+                dataRows.get(1)[size - 4 + 1] = String.valueOf(end1 - start1);
 
                 // Generate decryption key
                 long start2 = System.currentTimeMillis();
@@ -691,7 +692,7 @@ public class Main {
                 DecryptionKey dk = DKGen(msk, accessStructure, bf);
                 long end2 = System.currentTimeMillis();
                 System.out.println("DKGen 运行时间为：" + (end2 - start2));
-                dataRows.get(2)[size - 4] = String.valueOf(end2 - start2);
+                dataRows.get(2)[size - 4 + 1] = String.valueOf(end2 - start2);
 
                 // Encrypt
                 long start3 = System.currentTimeMillis();
@@ -702,7 +703,7 @@ public class Main {
                 Ciphertext ct = Encrypt(ek, receiverAttrs, senderAttrs, message, keywords);
                 long end3 = System.currentTimeMillis();
                 System.out.println("Encrypt 运行时间为：" + (end3 - start3));
-                dataRows.get(3)[size - 4] = String.valueOf(end3 - start3);
+                dataRows.get(3)[size - 4 + 1] = String.valueOf(end3 - start3);
 
                 // Generate trapdoor for keyword
                 long start4 = System.currentTimeMillis();
@@ -710,14 +711,14 @@ public class Main {
                 SearchTrapdoor td = Trapdoor(dk.QK, bf, keyword);
                 long end4 = System.currentTimeMillis();
                 System.out.println("Trapdoor 运行时间为：" + (end4 - start4));
-                dataRows.get(4)[size - 4] = String.valueOf(end4 - start4);
+                dataRows.get(4)[size - 4 + 1] = String.valueOf(end4 - start4);
 
                 // 执行 Search 算法
                 long start5 = System.currentTimeMillis();
                 SearchResult result = Search(accessStructure, ct, td);
                 long end5 = System.currentTimeMillis();
                 System.out.println("Search 运行时间为：" + (end5 - start5));
-                dataRows.get(5)[size - 4] = String.valueOf(end5 - start5);
+                dataRows.get(5)[size - 4 + 1] = String.valueOf(end5 - start5);
 
                 // ReKeyGen timing
                 long startReEnc = System.currentTimeMillis();
@@ -727,7 +728,7 @@ public class Main {
                 Ciphertext ctPrime = ReEncrypt(ct, rk);
                 long endReEnc = System.currentTimeMillis();
                 System.out.println("ReEncrypt 运行时间为：" + (endReEnc - startReEnc));
-                dataRows.get(6)[size - 4] = String.valueOf(endReEnc - startReEnc);
+                dataRows.get(6)[size - 4 + 1] = String.valueOf(endReEnc - startReEnc);
 
                 // Decrypt timing
                 long startDec = System.currentTimeMillis();
@@ -735,14 +736,15 @@ public class Main {
                 long endDec = System.currentTimeMillis();
                 System.out.println("Decrypt 运行时间为：" + (endDec - startDec));
                 System.out.println("Decrypted message: " + decryptedMessage);
-                dataRows.get(7)[size - 4] = String.valueOf(endDec - startDec);
+                dataRows.get(7)[size - 4 + 1] = String.valueOf(endDec - startDec);
             }
 
             // Write data to CSV file
             for (String[] rowData : dataRows) {
-                csvWriter.append(rowData[0]);
+                csvWriter.append(rowData[0]);  // 首先写入算法名称
                 for (int i = 1; i < rowData.length; i++) {
-                    csvWriter.append(",").append(rowData[i] != null ? rowData[i] : "");
+                    String value = rowData[i] != null ? rowData[i] : "0";
+                    csvWriter.append(",").append(value);
                 }
                 csvWriter.append("\n");
             }
