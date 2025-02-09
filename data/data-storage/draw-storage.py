@@ -19,7 +19,7 @@ plt.subplots_adjust(hspace=0.3, wspace=0.3)
 attr_points = [10, 20, 30, 40, 50]
 
 # 定义方案名称和颜色
-schemes = ['BAC-PE', 'CFDS', 'PRE-SE']
+schemes = ['Ours', 'CFDS', 'PRE-SE']  # 将 'BAC-PE' 改为 'Ours'
 colors = ['blue', 'orange', 'green']
 
 # 组件名称
@@ -37,7 +37,7 @@ for idx, component in enumerate(components):
     
     # 绘制每个方案的柱状图
     for i, (scheme, color) in enumerate(zip(schemes, colors)):
-        if scheme == 'BAC-PE':
+        if scheme == 'Ours':  # 修改条件判断
             data = bac_pe_data
         elif scheme == 'CFDS':
             data = cfds_data
