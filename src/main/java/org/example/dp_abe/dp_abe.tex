@@ -1,0 +1,44 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\setlength{\parindent}{1em}
+\usepackage{graphicx}
+\begin{document}
+\title{CFDS}
+
+\section{Construction}
+Let $\Omega_s$ and $\Omega_o$ be the subjective attribute universe and the objective universe, $\mathcal{P}_s$ and $\mathcal{P}_o$ denote subjective policies and objective policies, $\mathcal{M}$ represent the message space. The concrete scheme of S$A$-$DP$-$ABE$ with lightweight decryption S$\mathcal{F}$ are described as follows:
+
+SA.Setup(1$^{\lambda}$): The setup algorithm runs the group generator $G(1^\lambda)$ to generate the description of bilinear group
+$(\mathbb{G},\mathbb{G}_T,\mathbb{g},p).$ It then randomly pick terms $w,v,u,h,\tilde{u},\tilde{h}\in\mathbb{G}$ and $\alpha\in\mathbb{Z}_p.$ The algorithm returns the public parameten
+$pp=(g,w,v,u,h,\tilde{u},\tilde{h},e(g,g)^\alpha)$ and the master secret key $msk=\alpha.$
+
+SA.КеуGen$(pp,id):$ The key generation algorithm chooses a random exponent $\beta\in\mathbb{Z}_p$, and returns the secret key s$k_id=\beta$
+and the corresponding public key $pk_{id}= g^{\beta }$. 
+
+SA.TKGen$(pp,msk,id,pk_id,(\psi,\mathbb{O}))$: Parse a set of subjective attributes is $\psi=(\psi_1,\psi_2,...,\psi_{k_s})\subseteq\mathcal{U}_s$ and $\mathcal{O}=(M,\rho)\in\mathcal{P}_o$ is an objective access structure, where $M$ is a $\ell_o{\operatorname*{\times}}n_o{\operatorname*{\text{matrixand}}}\rho{:}[\ell_o]{\operatorname*{\to}}\mathbb{Z}_p.$ The transformation key generation algorithm picks $\vec{x} = ( \alpha _{id}, x_2, . . . , x_{n_o}) ^\top \in \mathbb{Z} _p^{n_o\times 1}$ and computes $\vec{\lambda } = ( \lambda _1, \lambda _2, . . . , \lambda _{\ell _o}) = M\vec{x} .$ It then chooses exponents $r, \{ r_i\} _{i\in \{ \ell _o\} }, \{ r_\tau \} _{\tau \in \{ k_s\} }\in \mathbb{Z} _p$, then returns the transformation key $tk_{id}$ as:
+
+$$\begin{aligned}tk_{id}&=\quad(\{tk_{1,i},tk_{2,i},tk_{3,i}\}_{i\in[\ell_{o}]},tk_{4},\{tk_{S,\tau},tk_{6,\tau}\}_{\tau\in[k_{s}]}),\\&=\quad(\{pk_{id}^{\alpha-\alpha_{id}+\lambda_{i}}w^{r_{i}}w^{r},(\tilde{d}^{\rho(i)}\tilde{h})^{-r_{i}},g^{r_{i}}\}_{i\in[\ell_{o}]},g^{r},\{g^{r_{\tau}},(u^{\psi_{\tau}}h)^{r_{\tau}}v^{-r}\}_{\tau\in[k_{s}]}).\end{aligned}$$
+
+SA.Enc$( pp, m, ( \mathbb{S} , \omega ) ) {: \text{Parse a subjective access structure S}}= ( N, \pi )$ and a set of objective attributes $\omega=(\omega_1,\omega_2,...,\omega_{k_o})$, where $N$ is a $\ell_s\times n_s$ matrix and $\pi:[\ell_s]\to\mathbb{Z}_p.$ The encryption algorithm picks $\vec{y}=(s,y_2,...,y_{n_s})^\top\in\mathbb{Z}_p^{n_s\times1}$ and computes $\vec{\Pi}=(\Pi_1,\Pi_2,...,\Pi_{\ell_s})=N\vec{y}.$ It then chooses $\{s_i\}_{i\in[k_o]},\{s_\tau\}_{\tau\in[\ell_s]}\in\mathbb{Z}_p$ and returns the ciphertext $c$ as:
+
+$\begin{aligned}\mathrm{c}&=\quad(c_{0},c_{1},\{c_{2,i},c_{3,i}\}_{i\in[k_{o}]},\{c_{4,\tau},c_{3,\tau},c_{6,\tau}\}_{\tau\in[\ell_{s}]}),\\&=\quad(m\cdot e(g,g)^{\alpha s},g^{s},\{g^{s_{i}},(\tilde{u}^{\omega_{i}}\tilde{h})^{s_{i}}w^{-s}\}_{i\in[k_{o}]},\{w^{\Pi_{r}}\nu^{s_{r}},(u^{\pi(\tau)}h)^{-s_{r}},g^{s_{r}}\}_{\tau\in[\ell_{s}]}).\end{aligned}$
+
+SA.\mathrm{Transform}(pp,c,(\mathbb{S},\omega),id,tk_{id},(\psi,\mathbb{C}))\text{: For the pair }(\psi,\mathbb{C}),\text{the transformation algorithm calculates the set of rows in }M\mathrm{~that}$
+provide a share to attributes in $\psi$, i.e. $I=\{i:\rho(i)\in\psi\}$ and computes the constants $\vec{u}=\{u_i\in\mathbb{Z}_p\}$ s.$t.\sum_i\in IM_iu_i=(1,0,...,0).$ For the pair $(\mathbb{S},\omega)$, the algorithm calculates the set of rows in $N$ that provide a share to attributes in $\omega$, i.e. $J=\{j\in\pi(j)\in\omega\}$ and computes the constants $\vec{\nu}=\{\nu_i\in\mathbb{Z}_p\}$ s.$t.\sum_j\in JN_jv_j=(1,0,...,0).$ The algorithm computes $B_1$ as:
+
+$$\begin{aligned}B_{1}&=\quad\prod_{j\in J}(e(c_{4,j},tk_{4})\cdot e(c_{5,j},tk_{5,j})\cdot e(c_{6,j},tk_{6,j}))^{\nu_{j}}\\&=\quad\prod_{j\in J}(e(w^{\Pi_{j}}\nu^{s_{j}},g^{r})\cdot e((u^{\pi(j)}h)^{-s_{j}},g^{r_{j}})\cdot e(g^{s_{j}},(u^{\omega_{j}}h)^{r_{j}}\nu^{-r}))^{\nu_{j}}\\&=\quad e(g,w)^{rs}.\end{aligned}$$
+
+For all $i\in I$, the algorithm computes $B_2,i$ as:
+
+$$B_{2,i}=e(c_{1},tk_{1,i})/B_{1}=e(g^{s},pk_{id}^{\alpha-\alpha_{id}+M_{i}x_{i}}w^{r_{i}}w^{r})/e(g,w)^{rs}=e(g^{s},pk_{id}^{\alpha-\alpha_{id}+M_{i}x_{i}}w^{r_{i}}).$$
+
+The algorithm then calculates $c_0^{\prime}$ as:
+
+$$\begin{aligned}c_{0}^{\prime}&=\quad\prod_{i\in I}\left(B_{2,i}\cdot e(c_{2,i},tk_{2,i})\cdot e(c_{3,i},tk_{3,i})\right)^{u_{i}}\\&=\quad\prod_{i\in I}(e(g^{s},pk_{id}^{\alpha-\alpha_{id}+\lambda_{i}}w^{r_{i}})\cdot e((\tilde{u}^{\rho(i)}\tilde{h})^{-r_{i}},g^{s_{i}})\cdot e(g^{r_{i}},(\tilde{u}^{\omega_{i}}\tilde{h})^{s_{i}}w^{-s}))^{u_{i}}\\&=\quad e(g,pk_{id})^{\alpha s}.\end{aligned}$$
+
+SA.\mathrm{Dec}(pp,id,sk_{id},c^{\prime})\text{:The decryption algorithm returns the message }m\mathrm{~as:}c_{0}/(c_{0}^{\prime})^{1/\beta}=m\cdot e(g,g)^{\alpha s}/e(g,g)^{\alpha\beta s/\beta}=m.
+
+\end{document}

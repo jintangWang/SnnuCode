@@ -13,3 +13,5 @@
 *.toc
 *.out
 *.bcf-SAVE-ERROR
+target
+*.pdf
