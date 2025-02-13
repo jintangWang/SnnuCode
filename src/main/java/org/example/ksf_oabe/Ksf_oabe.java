@@ -302,7 +302,7 @@ public class Ksf_oabe {
             }
         }
         long endKKW = System.currentTimeMillis();
-        long kkwTime = endKKW - startKKW;
+        long kkwTime = qctTime + endKKW - startKKW;
 
         return new TestTimings(qctTime, kkwTime, found);
     }
