@@ -1,0 +1,44 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\setlength{\parindent}{1em}
+\usepackage{graphicx}
+\begin{document}
+\title{ksf-oabe}
+
+\section{Construction}
+$Setup(\lambda){:}$TA chooses multiplicative cyclic groups $G_1,G_2$ with prime order $p,g$ is a generator of $G_1.$ TA selects a bilin- $\bar{\text{ear map}}e:G_{1}\times G_{1}\to G_{2}$ and defines the attributes in $U$ as values in $Z_p.$ For simplicity, we set $n=|U|$ and take the first $n$ values in $Z_p$ to be the attribute universe. TA randomly selects an integer $x\in Z_p$, computes $g_1=g^x$, and chooses $g_2,h,h_1,\ldots,h_n\in G_1$ randomly where $n$ is the number of attributes in universe. $H_1:\{0,1\}^*\to G_1$ and $H_2:G_2\to$ $\{0,1\}^{\log p}$ are two secure hash functions. TA publishes $PK=$ $( G_1, G_2, g, g_1, g_2, h, h_1, \ldots , h_n, H_1, H_2)$ as system public parameter, and keeps the master secret key $M\dot{SK}=x$ secret.
+
+$OABE-KeyGen_{init}(A,MSK){:}\underset{{\mathbf{U}}}{\operatorname*{\text{Upon receiving a private}}}$ key request on access policy $A$,TA selects $x_1\in Z_p$ randomly and computes $x_2=x-x_1$ mod $p.OK_{KGCSP}=x_1$ is sent to KG-CSP to generate outsourcing private key $SK_{KGCSP}.$ $OK_{TA}=x_2$ is used to generate local private key $SK_TA$ at TA side.
+
+$OABE-KeyGen_{out}(A,OK_{KGCSP}){:}$TA sends $OK_{KGCSP}$ to KG-CSP for generating outsourcing private key $SK_{KGCSP}.$ Upon receiving the request on $(\dot{A},OK_{KGCSP})$, $\begin{aligned}\text{KG-CSP chooses a}\left(d-1\right)\text{-degree polynomial }q(\cdot)\text{ randomly}\end{aligned}$ such that $q(0)=x_1.$ For $i\in A$, KG-CSP chooses $r_i\in Z_p$ randomly, and computes $d_{i0}= g_2^{q( i) }( g_1h_i) ^{r_i}$ and $d_{i1}= g^{r_i}.$ KG-CSP sends outsourcing private key $SK_{KGCSP}=\{d_{i0},d_{i1}\}_{i\in\omega}$ to TA.
+
+$OABE-KeyGen_{in}(OK_{TA}){:}$ TA takes $OK_{TA}$ as input and computes $d_{\theta0}=g_2^{x_2}(g_1h)^{r_\theta}$ and $d_{\theta1}=g^{r_\theta}$, where $r_\theta\in Z_p$ is selected randomly, $\theta$ is the default attribute. TA sets private key $SK=(SK_{KGCSP},SK_{TA})$, where $SK_{TA}=\{d_{\theta0},d_{\theta1}\}$. TA responses the user with $SK$ by secure channel.
+
+$KSF-KeyGen(PK,MSK,A,q_{BF}){:}$ To get a query private key of DU with access policy $A$, DU and TÅ interacts as follow:
+- DU chooses a blinding factor $BF=u\in Z_p^*$ ran-domly,  and provides a commitment $q_{BF}= g_2^{1/ u}$ and$\tilde{\text{an access policy }A}$ to TA. DU keeps $u$ secret.
+- TA retrieves $(g_1h)^{r_\theta}$ corresponding to $A$, and com-putes a query private key $QK=g_2^{x/u}(g_1h)^{r_\theta}$ for the $\bar{\text{DU}}.$
+- TA sends the query private $QK$ to DU by secure channel.
+
+$Encrypt(M,PK,\omega){:}$ It takes as input a message $M\in G_2$, the public parameters PK and an attribute set $\omega$ associated with ciphertext. DO randomly selects $s\in Z_p$ and calculates $C_0= \dot {Me}( g_1, g_2) ^s$, $C_1= g^s$, $C_i= \left ( g_1h_i\right ) ^s$for each $i\in \omega$, $C_\theta =$ $(g_{1}h)^{s}.$ DO outputs the ciphertext with attribute set $\omega$,where $CT=(\omega\cup\{\theta\},C_{0},C_{1},\{\dot{C_{i}}\}_{i\in\omega^{\prime}},C_{\theta}).$
+
+$Index(PK,CT,KW){:}$ DO selects $r\in Z_p$ randomly and runs the index generation algorithm to compute $k_i=e(g_1$, $g_2) ^s\cdot e( g, H_1( kw_i) ) ^s\in G_2$ for each $kw_i\in KW$ where $i=1,\ldots,m.$ DO outputs the indexes of keywords set as $IX(KW){=}(K_{1},K_{2},K_{i})$ for $kw_i\in KW$ where $K_1=C_1=g^{s}$, $K_2= C_\theta = ( g_1h) ^s, K_i= H_2( k_i) .$ DO uploads the tuple $(CT,IX(KW))$ to the S-CSP.
+
+$Trapdoor(PK,QK,BF,kw){:}$ In order to generate a trapdoor for a keyword $kw$, DU computes $T_q(kw)=$ $H_1(kw)QK^u$, and sets $I=(I_{i0}=d_{i0},I_{i1}=d_{i1})$ for all $i\in A$, $D_1=d_{\theta1}^u.$ DU sets trapdoor for the keyword $kw$ as $T_{kw}=(T_q(kw),I,D_1).$
+
+$Test(IX(KW),T_{kw},CT){:}$ DU submits a keyword search request by sending a trapdoor $T_{kw}$ for keyword $kw$ along $\hat{\text{with an access policy }A\text{ which is bound up with private key}}$ for DU. If the attribute set embedded ciphertext satisfies the access policy $A$, D-CSP downloads all those ciphertexts and executes partial decryption for them. D-CSP computes:
+
+$$Q_{CT}=\frac{\prod_{i\in S}e(C_1,I_{i0})^{\Delta_{i,S}(0)}}{\prod_{i\in S}e(I_{i1},C_i)^{\Delta_{i,S}(0)}}=e(g,g_2)^{sx_1}.$$
+
+D-CSP searches for the corresponding ciphertext $CT$ related to the appointed index of keywords through submitted trapdoor $T_{kw}.$ D-CSP computes:
+
+
+$$k_{kw}=\frac{e(K_1,T_q(kw))}{e(D_1,K_2)}=e(g_1,g_2)^s\cdot e(g,H_1(kw))^s,$$
+
+and $H_2(k_{kw}).$ D-CSP obtains the matching ciphertext by comparing $H_2(k_{kw})$ with each tuple $(CT,IX(KW))$ stored in $S-CSP.$ D-CSP tests whether $H_2(k_i)=H_2(k_{kw})$ for each $kw_i\in KW.$ D-CSP outputs $\perp$ if does not find matched tuple, otherwise D-CSP sends the search result that includes the tuple $(CT,IX(KW))$ and partial decryption data $Q_{CT}$ to DU
+
+$Decrypt(PK,CT,Q_{CT},SK_{TA}){:}$ Upon receiving the $Q_CT$ and the $CT$ from D-CSP, DU can completely decrypt the ciphertext and obtain the message $M=\frac{C_0\cdot e(d_{\theta1},C_\theta)}{Q_{CT}\cdot e(C_1,d_{\theta0})}.$
+
+\end{document}
