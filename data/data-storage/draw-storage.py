@@ -9,17 +9,17 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # 读取三个CSV文件，使用正确的相对路径
 bac_pe_data = pd.read_csv(os.path.join(current_dir, '../data-storage/bac_pe_storage_data.csv'))
 cfds_data = pd.read_csv(os.path.join(current_dir, '../data-storage/cfds_storage_data.csv'))
-pre_se_data = pd.read_csv(os.path.join(current_dir, '../data-storage/pre_se_storage_data.csv'))
+pre_se_data = pd.read_csv(os.path.join(current_dir, '../data-storage/ksf_oabe_storage_data.csv'))
 
 # 设置图形大小和布局
-fig, axs = plt.subplots(2, 2, figsize=(15, 12))
+fig, axs = plt.subplots(2, 2, figsize=(12, 12))  # 减小图形整体宽度
 plt.subplots_adjust(hspace=0.3, wspace=0.3)
 
 # 选择要对比的属性数量点（例如选择10, 20, 30, 40, 50）
 attr_points = [10, 20, 30, 40, 50]
 
 # 定义方案名称和颜色
-schemes = ['Ours', 'CFDS', 'PRE-SE']  # 将 'BAC-PE' 改为 'Ours'
+schemes = ['Ours', 'CFDS', 'KSF-OABE']  # 将 'BAC-PE' 改为 'Ours'
 colors = ['blue', 'orange', 'green']
 
 # 组件名称
@@ -56,7 +56,8 @@ for idx, component in enumerate(components):
     ax.grid(True, alpha=0.3)
     ax.legend()
 
-# 保存图片时也使用正确的路径
+# 保存图片时调整边距
+plt.tight_layout()  # 自动调整边距
 output_path = os.path.join(current_dir, 'storage_comparison.png')
-plt.savefig(output_path, dpi=300, bbox_inches='tight')
+plt.savefig(output_path, dpi=300)  # 移除 bbox_inches 参数
 plt.show()
