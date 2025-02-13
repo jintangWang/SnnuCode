@@ -7,8 +7,6 @@ import it.unisa.dia.gas.plaf.jpbc.pairing.PairingFactory;
 
 import java.util.*;
 
-import org.example.helpers.Util;
-
 public class belelDemo {
 
     private static Pairing pairing;

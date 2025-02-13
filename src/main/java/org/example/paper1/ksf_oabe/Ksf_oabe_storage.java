@@ -1,4 +1,4 @@
-package org.example.ksf_oabe;
+package org.example.paper1.ksf_oabe;
 
 import java.io.FileWriter;
 import java.io.IOException;

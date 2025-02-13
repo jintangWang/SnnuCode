@@ -1,4 +1,4 @@
-package org.example.mibe;
+package org.example.paper1.mibe;
 
 import it.unisa.dia.gas.jpbc.Element;
 import it.unisa.dia.gas.jpbc.Pairing;

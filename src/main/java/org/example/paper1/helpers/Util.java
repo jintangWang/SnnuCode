@@ -1,4 +1,4 @@
-package org.example.helpers;
+package org.example.paper1.helpers;
 
 import java.util.*;
 

@@ -1,7 +1,6 @@
-package org.example.bac_pe;
+package org.example.paper1.bac_pe;
 
 import it.unisa.dia.gas.jpbc.Element;
-import it.unisa.dia.gas.jpbc.Field;
 import it.unisa.dia.gas.jpbc.Pairing;
 import it.unisa.dia.gas.plaf.jpbc.pairing.PairingFactory;
 
@@ -10,8 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
 
-import org.example.helpers.AccessStructure;
-import org.example.helpers.Util;
+import org.example.paper1.helpers.AccessStructure;
+import org.example.paper1.helpers.Util;
 
 import java.io.FileWriter;
 import java.io.IOException;

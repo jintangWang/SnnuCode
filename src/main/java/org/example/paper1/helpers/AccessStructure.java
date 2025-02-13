@@ -1,4 +1,4 @@
-package org.example.helpers;
+package org.example.paper1.helpers;
 
 /**
  * Represents the access structure R = (A, phi).
