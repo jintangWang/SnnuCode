@@ -23,7 +23,7 @@ files_group1 = [
 files_group2 = [
     ('5verify-data.csv', 'Verify Time'),
     ('6search-data.csv', 'Search Time'),
-    ('7reenc-data.csv', 'Re-encryption Time'),
+    ('7transform-data.csv', 'Transform Time'),
     ('8dec-data.csv', 'Decryption Time')
 ]
 
@@ -34,7 +34,7 @@ styles = {
     'CFDS': (':', 's', 'green'),
     'MIBE': ('-.', 'D', 'red'),
     'CP-ABE': ('--', 'v', 'purple'),
-    'PRE-SE': ('--', '*', 'brown')  # 添加缺失的方案
+    'KSF-OABE': ('--', '*', 'brown')  # 添加缺失的方案
 }
 
 # 处理第一组图
