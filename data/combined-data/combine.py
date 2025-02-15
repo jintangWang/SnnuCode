@@ -1,8 +1,14 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# 创建两个图形
-plt.rcParams.update({'font.size': 8})
+# 设置全局字体
+plt.rcParams.update({
+    'font.family': 'Times New Roman',
+    'font.size': 10,
+    'axes.titlesize': 14,
+    'axes.labelsize': 12,
+    'legend.fontsize': 15,  # 增大图例字体
+})
 
 # 第一组图（前4个）
 fig1, axes1 = plt.subplots(2, 2, figsize=(12, 12))
@@ -79,12 +85,13 @@ for idx, (file_name, title) in enumerate(files_group1):
                     print(f"No data found for scheme: {scheme}")
 
         # Customize subplot with adjusted parameters
-        ax.set_title(f"({chr(97+idx)}) {title}", pad=10, fontsize=14)
+        ax.set_title(f"({chr(97+idx)}) {title}", pad=10, fontsize=14, fontfamily='Times New Roman')
         ax.grid(True, alpha=0.3)  # 降低网格线透明度
-        ax.set_xlabel("Size of Attributes", fontsize=12)
-        ax.set_ylabel("Runtime (ms)", fontsize=12)
+        ax.set_xlabel("Size of Attributes", fontsize=12, fontfamily='Times New Roman')
+        ax.set_ylabel("Runtime (ms)", fontsize=12, fontfamily='Times New Roman')
         ax.tick_params(axis='both', labelsize=12)  # 调整刻度标签大小
-        ax.legend(loc="upper left", fontsize=11, framealpha=0.7)
+        ax.legend(loc="upper left", fontsize=13, framealpha=0.7, 
+                 bbox_to_anchor=(0.02, 0.98))  # 调整图例位置和大小
         
     except Exception as e:
         print(f"Error processing {file_name}: {str(e)}")
@@ -132,12 +139,13 @@ for idx, (file_name, title) in enumerate(files_group2):
                     print(f"No data found for scheme: {scheme}")
 
         # Customize subplot with adjusted parameters
-        ax.set_title(f"({chr(97+idx+4)}) {title}", pad=10, fontsize=14)
+        ax.set_title(f"({chr(97+idx+4)}) {title}", pad=10, fontsize=14, fontfamily='Times New Roman')
         ax.grid(True, alpha=0.3)  # 降低网格线透明度
-        ax.set_xlabel("Size of Attributes", fontsize=12)
-        ax.set_ylabel("Runtime (ms)", fontsize=12)
+        ax.set_xlabel("Size of Attributes", fontsize=12, fontfamily='Times New Roman')
+        ax.set_ylabel("Runtime (ms)", fontsize=12, fontfamily='Times New Roman')
         ax.tick_params(axis='both', labelsize=12)  # 调整刻度标签大小
-        ax.legend(loc="upper left", fontsize=11, framealpha=0.7)
+        ax.legend(loc="upper left", fontsize=13, framealpha=0.7, 
+                 bbox_to_anchor=(0.02, 0.98))  # 调整图例位置和大小
         
     except Exception as e:
         print(f"Error processing {file_name}: {str(e)}")
