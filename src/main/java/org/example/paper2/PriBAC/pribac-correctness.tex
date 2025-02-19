@@ -1,0 +1,43 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\setlength{\parindent}{1em}
+\usepackage{graphicx}
+\begin{document}
+\title{CFDS}
+
+\section{Correctness Analysis}
+We provide a correctness analysis for the Match and Dec phases in PriBAC as follows.
+Theorem $l:If$ and only if both parties’preferences are satisfed $simultaneously$, $i. e.$, $( \mathbb{R}$ $\subset$ $\sigma ) \cap ( \mathbb{S}$ $\subset$ $\rho )$, the cloud server outputs the preference matching result b = 1. $Otherwise,b=0$ is outputted.
+$Proof{: }$ In PriBAC, if the sender's preference is satisfied by the receiver's attributes, i.e., $\mathbb{S}\subset\rho$ holds, we assume the $\dot{\text{suitable sequence as }\mathbb{S}}_j$, where $|\mathbb{S}_j|=|\mathbb{S}|.$ Then, the cloud server computes
+$$\begin{aligned}\prod_i^{\mathbb{S}_j}e(c_{2,i}^*,T_{2,i})&=\prod_{i=1}^{\mathbb{S}_j}e(g^{r_2\cdot K_{1,i}\cdot n_{1,i}(0)\cdot r_{e,i}\cdot\frac{1}{\gamma}},g^{\frac{t\cdot\gamma}{r_{e,i}}})\\&=e(g,g)^{r_2\cdot t\cdot\sum_{i=1}^{\mathbb{S}_j}(K_{1,i}\cdot n_{1,i}(0))}\\&=e(g,g)^{r_2\cdot t\cdot\alpha}.\end{aligned}$$
+
+Similarly, if the receiver's preference is satisfied by the sender's attributes, i.e., $\mathbb{R}\subset\sigma$ holds, we assume the suitable sequence as $\mathbb{R}_j$, where $|\mathbb{R}_j|=|\mathbb{R}|.$ Then, the cloud server computes
+
+$$\begin{aligned}\prod_{i=1}^{\mathbb{R}_j}e(c_{1,i}^*,T_{1,i})&=\Pi_{i=1}^{|\mathbb{R}_j|}e(g^{\frac{r_1\omega}{r_{p,i}\omega}},g^{t\cdot K_{2,i}\cdot n_{2,i}(0)\cdot r_{p,i}})\\&=e(g,g)^{r_1\cdot t\cdot\sum_{i=1}^{\mathbb{R}_j}(K_{2,i}\cdot n_{2,i}(0))}\\&=e(g,g)^{r_1\cdot t\cdot\beta}.\end{aligned}$$
+
+Next, the cloud server computes
+
+$$\begin{aligned}\frac{\prod_{i=1}^{\mathbb{S}_j}e(c_{2,i}^*,T_{2,i})}{\prod_{i=1}^{\mathbb{R}_j}e(c_{1,i}^*,T_{1,i})}&=\frac{e(g,g)^{r_2\cdot t\cdot\alpha}}{e(g,g)^{r_1\cdot t\cdot\beta}}\\&=e(g,g)^t\cdot(r_2\cdot\alpha-r_1\cdot\beta)\\&=e(g^t,g^{r_2\cdot\alpha-r_1\cdot\beta})\\&=e(T_3,c_5).\end{aligned}$$
+
+Clearly, when the above two equations hold simultaneously, the cloud server outputs $b = 1$. Otherwise, $b = 0$ is outputted by the cloud server. Therefore, the correctness of matching in PriBAC holds, and Theorem 1 is proven.
+□
+Theorem $2:If$ and only if both parties’preferences are satisfted simultaneously, i.e., $(\mathbb{R}\subset\sigma)\cap(\mathbb{S}\subset\rho)$, the message $m$ can be successfully recovered by the receiver. Otherwise, the receiver outputs $\bot.$
+
+Proof: Similar to Theorem 1, if the sender’s preference is satisfied by the receiver’s attributes, i.e., $\mathbb{S}\quad\subset\quad\rho$ holds, we assume the suitable sequence as $\mathbb{S}_j$, Based on the sequence $\mathbb{S}_j$, the receiver computes
+
+$$\begin{aligned}d_{1}&=\frac{c_4}{\prod_{i=1}^{\mathbb{S}_j}e(c_{2,i}^*,dk_\rho)}\\&=\frac{c_4}{\prod_{i=1}^{\mathbb{S}_j}e(g^{K_{1,i}\cdot n_{1,i}(0)\cdot r_2\cdot r_{e,i}\cdot\frac{1}{\gamma}},g^{\frac{\gamma}{r_{e,i}}})}\\&=\frac{e(R_2,R_4)\cdot e(g^\alpha,R_2)}{e(g,g)^{r_2\cdot\sum_{i=1}^{\mathbb{S}_j}(K_{1,i}\cdot n_{1,i}(0))}}\\&=\frac{e(R_2,R_4)\cdot e(g^\alpha,R_2)}{e(g,g)^{r_2\cdot\alpha}}\\&=e(R_2,R_4).\end{aligned}$$
+
+If the receiver's preference is satisfed by the sender's attributes, i.e., $\mathbb{R}$ $\subset$ $\sigma$ holds, we assume the suitable sequence as $\mathbb{R}_j.$ Based on the sequence $\mathbb{R}_j$, the receiver computes
+
+$$\begin{aligned}d_{2}&=\frac{c_3}{\prod_{i=1}^{\mathbb{R}_j}e(c_{1,i}^*,dk_{\mathbb{S}}^{n_{2,i}(0)})}\\&=\frac{e(R_1,R_3)\cdot e(g^\beta,R_1)}{\Pi_{i=1}^{\mathbb{R}_j}e(g^{\frac{r_1\omega}{r_{p,i}\omega}},g^{r_{p,i}\cdot n_{2,i}(0)\cdot K_{2,i}})}\\&=\frac{e(R_1,R_3)\cdot e(g^\beta,R_1)}{e(g,g)^{r_1\cdot\sum_{i=1}^{R_j}(K_{2,i}\cdot n_{2,i}(0))}}\\&=\frac{e(R_1,R_3)\cdot e(g^\beta,R_1)}{e(g^\beta,R_1)}\\&=e(R_1,R_3)\end{aligned}$$
+
+Then, the receiver recovers the message $m$ as follows.
+$$\begin{aligned}\mathrm{m}&=V\oplus H[d_1]\oplus H[d_2]\\&=V\oplus H[e(R_1,R_3)]\oplus H[e(R_2,R_4)].\end{aligned}$$
+
+In summary, when $(\mathbb{S}\subset\sigma)\cap(\mathbb{R}\subset\rho)$, i.e., the above two equations hold simultaneously, the message $m$ can be successfully recovered by the receiver. Otherwise, the receiver can only obtain an error symbol $\bot.$ Therefore, the correctness of decrypting in PriBAC holds, and Theorem 2 is proven.
+
+
+\end{document}
