@@ -6,8 +6,7 @@
 \setlength{\parindent}{1em}
 \usepackage{graphicx}
 \begin{document}
-\title{Efficient attribute-based encryption with attribute revocation
-for assured data deletion}
+\title{Efficient attribute-based encryption with attribute revocation for assured data deletion}
 \section{Construction}
 A concrete construction of key-policy attribute-based encryption for assured data deletion is proposed in this part, which supports fine-grained access control simultaneously. In our construction, to achieve assured deletion efficiently, the access structure attached in a private key consists of AND-gate on the attributes. We introduce a special attribute called “availability" in the attribute set. It has two values, namely, available and unavailable. By default, the value available is included in the access structure of users and described attributes in ciphertext. By changing the value of this specific attribute in the ciphertext, the ciphertext will not satisfy the access structure of all users, including the data owner. Hence, the goal of data deletion is achieved. To achieve assured data deletion, the data owner builds a MHT on the components of ciphertext, generates the root of MHT, and uploads the ciphertext, signature of the root to the cloud. When a ciphertext is re-encrypted, the new root of the MHT can be viewed as a proof of deletion. The details of the proposed protocol are as follows.
 

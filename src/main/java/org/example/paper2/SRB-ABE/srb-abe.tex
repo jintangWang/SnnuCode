@@ -1,0 +1,62 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\setlength{\parindent}{1em}
+\usepackage{graphicx}
+\begin{document}
+\title{Server-Aided Bilateral Access Control for Secure Data Sharing With Dynamic User Groups}
+
+\section{Construction}
+$\mathsf{Setup}(1^\lambda,\mathcal{N},\mathcal{T})\to(mpk,msk,st,rl):$The setup algorithm generates a description of bilinear group $(e,\mathbb{G},\mathbb{G}_T,g,p)$ according to a bilinear group parameter generator $\mathcal{G}(1^\lambda)$ . Let $\ell$ be the bit length of the system bounded lifetime $\mathcal{T}$ such that $\ell=\log_2\mathcal{T}$ .The algorithm randomly chooses terms $\alpha,\beta\in\mathbb{Z}_p$ and $w,v,u,h,u_0,u_1,\ldots,u_\ell\in\mathbb{G}$ .It then picks a collision-resistant hash function $\mathcal{H}:\{0,1\}^*\to\mathbb{G}$ and a binary tree BT with at least $\mathcal{N}$ leaf nodes. The algorithm returns a master public key mpk , a master secret key msk , a state $st$ and a revocation list $rl$ as:
+\begin{align*} mpk=&(g,w,v,u,h,u_{0},u_{1},\ldots,u_\ell,e(g,g)^\alpha,e(g,g)^\beta,\mathcal {H}),\\ msk=&(\alpha,\beta),st\leftarrow {\textsf {BT}},rl\leftarrow \emptyset.\end{align*}
+
+$\begin{aligned}&\mathsf{KeyGen}(id)\to(pk_{id},sk_{id}):\text{The key generation algorithm picks a random term }\gamma_{id}\in\mathbb{Z}_p\text{ and returns a key pair}&(pk_{id},sk_{id})\mathrm{~as~}pk_{id}=g^{\gamma_{id}}\mathrm{~and~}sk_{id}=\gamma_{id}\mathrm{~.}\end{aligned}$
+
+TKGen$(msk,st,pk_{id},\mathcal{R})\to(tk_{id},st):$Parse the attribute set of a receiver $\mathcal{R}=(\mathcal{R}_1,\mathcal{R}_2,\ldots,\mathcal{R}_k)$ and the state $st=$BT .The transformation key generation algorithm chooses an undefined leaf node from BT , and stores $id$ in this node. For all $\theta\in\mathsf{Path}(id)$ ,it runs as follows:
+1) It fetches $g_\theta$ if it is available in the node $\theta.$ If $\theta$ has not been defined, it randomly picks $g_\theta\in\mathbb{G}$ and updates the
+node $\theta$ by updating the state $st\leftarrow st\cup\left(\theta,g_\theta\right).$
+2) It randomly chooses $r,r_1,r_2,\ldots,r_k\in\mathbb{Z}_p$ and computes $g_\theta^\prime=pk_{id}^\alpha/g_\theta$ to derive the transformation key
+$tk_\theta=(tk_1,tk_2,\left.\{tk_{3,\tau},tk_{4,\tau}\right\}_{\tau\in[k]})$ as:
+\begin{equation*} tk_{1}\!=\!g_\theta ^{\prime }w^{r},tk_{2}=g^{r},tk_{3,\tau }=g^{r_\tau },tk_{4,\tau }=(u^{\mathcal {R}_\tau }h)^{r_\tau }v^{-r}.\end{equation*}
+$\text{It returns a state }st\text{ and a transformation key }tk_{id}=\left((id,\mathcal{R}),\mathrm{~}\{tk_\theta\}_{\theta\in\mathsf{Path}(id)}\right).$
+
+KUGen$(st,rl,t)\to ku_t:$Parse the timestamp $t$ with $\ell$ bits such that $t\in\{0,1\}^\ell$ . Let $t[i]$ be the $i^{th}$ -bit of the timestamp $t$ .For each node $\theta\in$KUNodes$(st,rl,t)$ , the key updating materials generation algorithm randomly picks a term $\bar{r}\in\mathbb{Z}_p$ and defines a set $\mathcal{V}\in[\ell]$ recording all indices $i$ for $t[i]=0$ to compute a key updating material $ku_\theta=(ku_1,ku_2)$ as:
+\begin{equation*} ku_{1}=g_\theta \cdot \left({u_{0}\prod \nolimits _{i\in \mathcal {V}}u_{i}}\right)^{\bar {r}}, ku_{2}=g^{\bar {r}}.\end{equation*}
+$\text{The algorithm finally returns a key updating material }ku_t=(t,\{ku_\theta\}_{\theta\in\mathrm{KUNodes}(st,rl,t)})\mathrm{~.}$
+
+TKUpdate$(tk_id,ku_t)\to utk_{id,t}/\bot:$The transformation key updating algorithm returns a failure symbol $\perp$ if $\mathsf{Path}(id)\cap\mathsf{KUNodes}(st,rl,t)=\emptyset;$ otherwise, it has $\theta\in\mathsf{Path}(id)\cap\mathsf{KUNodes}(st,rl,t)$ .Let $\mathcal{V}\in[\ell]$ be the set of all indices $i$ for $t[i]=0.$ The algorithm returns an updated transformation key $utk_{id,t}=\left((id,\mathcal{R},t),utk_1,utk_2,\:\{utk_{3,\tau},utk_{4,\tau}\}_{\tau\in[k]},utk_5\right)$as:
+\begin{align*} utk_{1}=&tk_{1}\cdot ku_{1}=pk_{id}^\alpha w^{r} \cdot \left({u_{0}\prod \nolimits _{i\in \mathcal {V}}u_{i}}\right)^{\bar {r}},\\ utk_{2}=&tk_{2}=g^{r},utk_{3,\tau }=tk_{3,\tau }=g^{r_\tau },\\ utk_{4,\tau }=&tk_{4,\tau }=(u^{\mathcal {R}_\tau }h)^{r_\tau }v^{-r},utk_{5} =ku_{2}=g^{\bar {r}}.\end{align*}
+
+EKGen$(msk,\mathcal{S})\to ek_\mathcal{S}:$Parse the attribute set of a sender $\mathcal{S}=\left\{\mathcal{S}_1,\mathcal{S}_2,\ldots,\mathcal{S}_k\right\}.$ The encryption key generation algorithm randomly picks terms $s,s_1,s_2,\ldots,s_k\in\mathbb{Z}_p$ and returns an encryption key $ek_{\mathcal{S}}=(\mathcal{S},ek_1,ek_2,\{ek_{3,\tau},ek_{4,\tau}\}_{\tau\in[k]})$ as:
+\begin{equation*} ek_{1}=g^\beta w^{s}, ek_{2}=g^{s}, ek_{3,\tau }=g^{s_\tau }, ek_{4,\tau }=(u^{\mathcal {S}_\tau }h)^{s_\tau }v^{-s}.\end{equation*}
+
+$\mathsf{Enc}(ek_S,\hat{\mathcal{S}},t,\mathbb{R},m)\to c:$Parse the access structure of a receiver $\mathbb{R}=(\mathbb{M},\rho)$ .The encryption algorithm randomly chooses a vector $\vec{x}=(\phi,x_2,\ldots,x_n)^\top\in\mathbb{Z}_p^{n\times1}$ and computes $\vec{\lambda}=(\lambda_1,\lambda_2,\ldots,\lambda_l)^\top=\mathbb{M}\vec{x}.$ It randomly chooses terms $\phi_1,\phi_2,\ldots,\phi_l\in\mathbb{Z}_p$ and computes
+\begin{align*} c_{0}=&m\cdot e(g,g)^{\alpha \phi }, c_{1}=g^\phi, c_{2,\tau }=w^{\lambda _\tau }v^{\phi _\tau },\\ c_{3,\tau }=&(u^{\rho (\tau)}h)^{-\phi _\tau }, c_{4,\tau }=g^{\phi _\tau }.\end{align*}
+$\begin{aligned}&\mathrm{Let~}\tilde{\mathcal{V}}\in[\ell]\text{ be the set of all indices }i\mathrm{~for~}\tilde{t}\left[i\right]=0\text{ . It encodes the timestamp }t\mathrm{~to~}\tilde{t}\text{ via running the time encoding}\\&\text{algorithm TEncode}(t,\mathcal{T})\text{ and computes}\end{aligned}$
+\begin{equation*} \tilde {c}_{1}=u_{0}^\phi, \tilde {c}_{2,i}=u_{i}^{\phi }.\end{equation*}
+$\begin{aligned}&\text{Parse the attribute of a sender }\hat{\mathcal{S}}=(\hat{\mathcal{S}}_1,\hat{\mathcal{S}}_2,\ldots,\hat{\mathcal{S}}_m)\mathrm{~and~}\hat{\mathcal{S}}\subseteq\mathcal{S}\text{. It randomly chooses }\hat{s},\hat{s}_1,\hat{s}_2,\ldots,\hat{s}_m,\kappa\in\mathbb{Z}_p\\&\text{and computes}\end{aligned}$
+\begin{align*} \hat {c}_{1}=&ek_{2}\cdot g^{\hat {s}}=g^{s+\hat {s}}, \hat {c}_{2,\hat {\tau }}=ek_{3,\tau }\cdot g^{s_{\hat {\tau }}}=g^{s_\tau +s_{\hat {\tau }}},\\ \hat {c}_{3,\hat {\tau }}=&ek_{4,\tau }\cdot (u^{\mathcal {S}_\tau }h)^{s_{\hat {\tau }}}v^{-\hat {s}}=(u^{\mathcal {S}_\tau }h)^{s_{\tau }+s_{\hat {\tau }}}v^{-(s+\hat {s})}, \hat {c}_{4}=g^\kappa.\end{align*}
+$\mathrm{Let~\ddot{c}~be~\ddot{c}}=c_0\|c_1\|c_{2,1}\|\ldots\|c_{2,l}\|c_{3,1}\|\ldots\|c_{3,l}\|c_{4,1}\|\ldots\|c_{4,l}\|\hat{c}_1\|\mathrm{~}\hat{c}_{2,1}\|\ldots\|\hat{c}_{2,m}\|\hat{c}_{3,1}\|\ldots\|\mathrm{~}\hat{c}_{3,m}\|\hat{c}_4.\text{ It computes}$
+\begin{equation*} \hat {c}_{0}=ek_{1}\cdot w^{\hat {s}}\cdot \mathcal {H}(\ddot {c})^\kappa =g^\beta w^{s+\hat {s}}\cdot \mathcal {H}(\ddot {c})^\kappa.\end{equation*}
+$\text{The algorithm returns a ciphertext }c=(c_0,c_1,\{c_{2,\tau},c_{3,\tau},c_{4,\tau}\}_{\tau\in[l]},\tilde{c}_1,\{\tilde{c}_{2,i}\}_{i\in\tilde{\mathcal{V}}},\hat{c}_0,\hat{c}_1,\{\hat{c}_{2,\tau},\hat{c}_{3,\tau}\}_{\tau\in[m]},\hat{c}_4)\mathrm{~.}$
+
+$\mathsf{CTUpdate}(c,t)\to c_t:\mathrm{Let~}\mathcal{V}\in[\ell]\text{ be the set of all indices }i\mathrm{~for~}t[i]=0.\text{ The ciphertext update algorithm computes}$
+\begin{equation*} \tilde {c}=\tilde {c}_{1}\prod \nolimits _{i\in \mathcal {V}}\tilde {c}_{2,i}=\left({u_{0}\prod \nolimits _{i\in \mathcal {V}}u_{i}}\right)^\phi.\end{equation*}
+$\text{The algorithm returns the updated ciphertext }c_t=(c_0,c_1,\mathrm{~}\{c_{2,\tau},c_{3,\tau},c_{4,\tau}\}_{\tau\in[l]},\tilde{c},\mathrm{~}\hat{c}_0,\hat{c}_1,\{\hat{c}_{2,\tau},\hat{c}_{3,\tau}\}_{\tau\in[m]},\hat{c}_4)\mathrm{~.}$
+
+Verify$(\mathbb{S},c_t)\to\{0,1\}:$Parse the access structure of a sender $\mathbb{S}=\left(\mathbb{N},\pi\right).$ The verification algorithm randomly picks a vector $\vec{y}=(1,y_2,\ldots,y_n)^\top\in\mathbb{Z}_p^{n\times1}$ and computes $\vec{\mu}=(\mu_1,\mu_2,\ldots,\mu_l)^\top=\mathbb{N}\vec{y}.$ Let $\mathcal{I}$ be $\mathcal{I}=\{i:\pi(i)\in\mathcal{S}\}$ for $\{\omega_i\in\mathbb{Z}_p\}_{i\in\mathcal{I}}\sin$ that $\sum_{i\in\mathcal{I}}\omega_i\mathbb{N}_i=(1,0,\ldots,0)$ .The verification sets
+\begin{align*} den=&\prod \nolimits _{i\in \mathcal {I}}(e(\hat {c}_{1},w^{\mu _{i}}v)\cdot e(\hat {c}_{2,\tau },(u^{\pi (i)}h)^{-1})\\&\cdot e(\hat {c}_{3,\tau },g))^{\omega _{i}}\cdot e(\hat {c}_{4},\mathcal {H}(\ddot {c}))\end{align*}
+$\text{and checks }e(\hat{c}_{0},g)/den\overset{?}{\operatorname*{\operatorname*{\operatorname*{=}}}}e(g,g)^{\beta}.\text{ The algorithm outputs 1 if the above formula is valid; otherwise, it outputs o.}$
+
+$\mathsf{Transfer}(utk_{id,t},c_t)\to\dot{c}:\mathsf{Parse~the~attribute~set~of~a~receiver~}\mathcal{R}=(\mathcal{R}_1,\mathcal{R}_2,\ldots,\mathcal{R}_k)$ and the access structure of a receiver $\mathbb{R}=(\mathbb{M},\rho)$ ,where $\mathbb{M}\in\mathbb{Z}_p^{l\times n}$ is a matrix and $\rho:[l]\to\mathbb{Z}_p$ is a mapping function. Let $\mathcal{J}$ be $\mathcal{J}=\{j:\rho(j)\in\mathcal{R}\}$ for $\{\delta_j\in\mathbb{Z}_p\}_{j\in\mathcal{J}}$ such that$\sum_j\in\mathcal{J}\delta_j\mathbb{M}_j=(1,0,\ldots,0)$ .The transformation algorithm sets
+\begin{align*} den=&\prod \nolimits _{j\in \mathcal {J}}(e(c_{2,j},utk_{2})\cdot e(c_{3,j},utk_{3,\tau })\\&\cdot e(c_{4,j},utk_{4,\tau }))^{\delta _{j}}\cdot e(\tilde {c},utk_{5})\end{align*}
+$\text{and computes }\dot{c}_0=e(c_1,utk_1)/den=e(pk_{id},g)^{\alpha\phi}.\text{ The algorithm returns a transformed ciphertext }\dot{c}=(c_0,\dot{c}_0)\mathrm{~.}$
+
+$\mathsf{Dec}(sk_{id},\dot{c})\to m:\text{The decryption algorithm returns a message as:}$
+\begin{equation*} c_{0}/\dot {c}_{0}^{1/sk_{id}}=m\cdot e(g,g)^{\alpha \phi }/ e(g,g)^{\alpha \gamma _{id}\phi /\gamma _{id}}=m.\end{equation*}
+
+$\mathsf{Rev}(rl,id,t)\to rl:\text{The revocation algorithm returns an updated revocation list }rl\mathrm{~as~}rl\leftarrow rl\cup(id,t)\mathrm{~.}$
+
+\end{document}

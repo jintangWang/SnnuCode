@@ -1,0 +1,256 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\setlength{\parindent}{1em}
+\usepackage{graphicx}
+\begin{document}
+\title{Blockchain-based Bilateral Access Control with Attribute Revocation for Pharmaceutical Supply Chain}
+
+\section{Construction}
+\subsection{Detailed Scheme Algorithms}
+
+\subsubsection{System Initialization: Setup($1^\lambda$)}
+\begin{itemize}
+    \item \textbf{Input}: Security parameter $1^\lambda$.
+    \item \textbf{Process}:
+    \begin{enumerate}
+        \item Run the bilinear group generator $\mathcal{G}(1^\lambda)$ to obtain $(p, \mathbb{G}, \mathbb{G}_T, e, g)$, where:
+        \begin{itemize}
+            \item $p$: Prime number.
+            \item $\mathbb{G}, \mathbb{G}_T$: Cyclic groups of order $p$.
+            \item $e: \mathbb{G} \times \mathbb{G} \to \mathbb{G}_T$: Bilinear pairing.
+            \item $g$: Generator of $\mathbb{G}$.
+        \end{itemize}
+        \item Randomly select $\alpha, \beta \in \mathbb{Z}_p$.
+        \item Define hash functions:
+        \begin{itemize}
+            \item $\mathcal{H}_1: \Omega_{\mathrm{snd}} \to \mathbb{G}$: Maps sender attributes to group elements.
+            \item $\mathcal{H}_2: \Omega_{\mathrm{rcv}} \to \mathbb{G}$: Maps receiver attributes to group elements.
+            \item $\mathcal{H}_3: \{0,1\}^* \to \mathbb{G}$: Collision-resistant hash.
+        \end{itemize}
+        \item For the values of the availability attribute ("available" and "unavailable"), randomly select $s_{\text{avail}}, s_{\text{unavail}} \in \mathbb{Z}p$ and calculate the corresponding public key components: $t_{\text{avail}} = g^{s_{\text{avail}}}, t_{\text{unavail}} = g^{s_{\text{unavail}}}$
+    \end{enumerate}
+    \item \textbf{Output}:
+    \begin{itemize}
+        \item Master Public Key:
+        $
+        mpk = (p, \mathbb{G}, \mathbb{G}_T, e, g, \mathcal{H}_1, \mathcal{H}_2,\\ \mathcal{H}_3, e(g,g)^\alpha, e(g,g)^\beta, t_{\text{avail}}, t_{\text{unavail}})
+        $
+        \item Master Secret Key:
+        \[
+        msk = (g^\alpha, g^\beta, s_{\text{avail}}, s_{\text{unavail}})
+        \]
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Encryption Key Generation: EKGen($msk, \mathcal{S}$)}
+\begin{itemize}
+    \item \textbf{Input}: Master secret key $msk$, sender attribute set $\mathcal{S} = (att_{\mathbf{snd},1}, \ldots, att_{\mathbf{snd},k}, \text{availability})$.
+    \item \textbf{Process}:
+    \begin{enumerate}
+        \item Randomly select $r \in \mathbb{Z}_p$.
+        \item For each attribute $att_{\mathbf{snd},i} \in \mathcal{S} \setminus \{\text{availability}\}$, compute:
+        \[
+        ek_{1,i} = g^\alpha \mathcal{H}_1(att_{\mathbf{snd},i})^r
+        \]
+        \item For the \text{availability} attribute, compute:
+        \[
+        ek_{1,\text{avail}} = g^\alpha t_{\text{avail}}^r
+        \]
+        \item Compute:
+        \[
+        ek_2 = g^r
+        \]
+    \end{enumerate}
+    \item \textbf{Output}:
+    \[
+    ek = (\mathcal{S}, \{ek_{1,i}\}_{i=1}^k, ek_{1,\text{avail}}, ek_2)
+    \]
+\end{itemize}
+
+\subsubsection{Decryption Key Generation: DKGen($msk, \mathbb{R}$)}
+\begin{itemize}
+    \item \textbf{Input}: Master secret key $msk$, receiver access structure $\mathbb{R} = (\mathbb{N}, \pi)$, where:
+    \begin{itemize}
+        \item $\mathbb{N} \in \mathbb{Z}_p^{\ell_\mathbb{N} \times n_\mathbb{N}}$: Access matrix.
+        \item $\pi: [\ell_\mathbb{N}] \to \Omega_{\mathrm{rcv}} \cup \{\text{availability}\}$: Attribute mapping function.
+    \end{itemize}
+    \item \textbf{Process}:
+    \begin{enumerate}
+        \item Randomly select a vector $\vec{y} = (\beta, y_2, \ldots, y_{n_\mathbb{N}})^\top \in \mathbb{Z}_p^{n_\mathbb{N} \times 1}$.
+        \item Compute secret shares $\vec{\lambda} = (\lambda_1, \ldots, \lambda_{\ell_\mathbb{N}}) = \mathbb{N} \vec{y}$.
+        \item For each $i \in [\ell_\mathbb{N}]$:
+        \begin{itemize}
+            \item Randomly select $r_i \in \mathbb{Z}_p$.
+            \item If $\pi(i) \neq \text{availability}$:
+            \[
+            dk_{1,i} = g^{\lambda_i} \mathcal{H}_2(\pi(i))^{r_i}
+            \]
+            \item If $\pi(i) = \text{availability}$:
+            \[
+            dk_{1,i} = g^{\lambda_i} t_{\text{avail}}^{r_i}
+            \]
+            \item Compute:
+            \[
+            dk_{2,i} = g^{r_i}
+            \]
+        \end{itemize}
+    \end{enumerate}
+    \item \textbf{Output}:
+    \[
+    dk = ((\mathbb{N}, \pi), \{dk_{1,i}, dk_{2,i}\}_{i \in [\ell_\mathbb{N}]})
+    \]
+\end{itemize}
+
+\subsubsection{Data Encryption: Enc($ek, \mathcal{R}, \mathcal{S}', m$)}
+\begin{itemize}
+    \item \textbf{Input}: Encryption key $ek$, receiver attribute set $\mathcal{R} = (att_{\mathbf{rcv},1}, \ldots, att_{\mathbf{rcv},l}, \text{availability})$, sender attribute subset $\mathcal{S}' \subseteq \mathcal{S}$, message $m$.
+    \item \textbf{Process}:
+    \begin{enumerate}
+        \item Randomly select $s, r', t \in \mathbb{Z}_p$.
+        \item Compute:
+        \[
+        c_0 = m \cdot e(g,g)^{\beta s}, \quad c_1 = g^s
+        \]
+        \item For each attribute $att_{\mathbf{rcv},i} \in \mathcal{R} \setminus \{\text{availability}\}$:
+        \[
+        c_{2,i} = \mathcal{H}_2(att_{\mathbf{rcv},i})^s
+        \]
+        \item For the \text{availability} attribute:
+        \[
+        c_{2,\text{avail}} = t_{\text{avail}}^s
+        \]
+        \item Compute:
+        \[
+        c_3 = ek_2 \cdot g^{r'} = g^{r + r'}, \quad c_4 = g^t
+        \]
+        \item Set $c_{1-4} = c_0 \parallel c_1 \parallel c_{2,1} \parallel \cdots \parallel c_{2,l} \parallel c_{2,\text{avail}} \parallel c_3 \parallel c_4$.
+        \item For each attribute $att_{\mathbf{snd},i'} \in \mathcal{S}' \setminus \{\text{availability}\}$, find corresponding $ek_{1,j}$ and compute:
+        $$\begin{aligned}
+        c_{5,i'} &= ek_{1,i'} \cdot \mathcal{H}_1(att_{\mathbf{snd},i'})^{r'} \cdot \mathcal{H}_3(c_{1-4})^t \\
+            &= g^\alpha \cdot  \mathcal{H}_1(att_{\mathbf{snd},i'})^{r+r'} \cdot \mathcal{H}_3(c_{1-4})^t
+        \end{aligned}$$
+    \end{enumerate}
+    \item \textbf{Output}:
+    \[
+        \begin{aligned}
+        c = &((\mathcal{S}, \mathcal{R}), c_0, c_1, \{c_{2,i}\}_{i=1}^l, c_{2,\text{avail}}, \\
+        &c_3, c_4, \{c_{5,i'}\}_{att_{\mathbf{snd},i'} \in \mathcal{S}' \setminus \{\text{availability}\}})
+        \end{aligned}
+    \]
+    \item \textbf{Fabric Interaction}:
+    \begin{itemize}
+        \item Compute $h_c = \mathcal{H}_3(c_{1-4})$.
+        \item Call \texttt{RecordPublicEvent$(drugID, \\ batchNumber, "Drug Produced")$} on Main Channel with parameters \texttt{drugID} (drug identifier), \texttt{batchNumber} (production batch), \texttt{eventType} ("Drug Produced").
+        \item Call \texttt{RecordSensitiveData$(drugID, h_c, "")$} on "ManufacturerRegulatorCollection" with parameters \texttt{drugID} (drug identifier), \texttt{dataHash} (ciphertext hash $h_c$), \texttt{index} (empty string).
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Identity Verification: Verify($\mathbb{S}, c$)}
+\begin{itemize}
+    \item \textbf{Input}: Sender access structure $\mathbb{S} = (\mathbb{M}, \rho)$, ciphertext $c$, where:
+    \begin{itemize}
+        \item $\mathbb{M} \in \mathbb{Z}_p^{\ell_{\mathbb{M}} \times n_{\mathbb{M}}}$: Access matrix.
+        \item $\rho: [\ell_{\mathbb{M}}] \to \Omega_{\mathrm{snd}}$: Attribute mapping function.
+    \end{itemize}
+    \item \textbf{Process}:
+    \begin{enumerate}
+        \item Randomly select $\vec{x} = (1, x_2, \ldots, x_{n_{\mathbb{M}}})^\top \in \mathbb{Z}_p^{n_{\mathbb{M}} \times 1}$.
+        \item Compute $\vec{\kappa} = (\kappa_1, \ldots, \kappa_{\ell_{\mathbb{M}}}) = \mathbb{M} \vec{x}$.
+        \item Define $I = \{ i \mid i \in [\ell_{\mathbb{M}}], \rho(i) \in \mathcal{S}' \setminus \{\text{availability}\} \}$.
+        \item Find $\{\omega_i\}_{i \in I}$ such that $\sum_{i \in I} \omega_i \mathbb{M}_i = (1, 0, \ldots, 0)$.
+        \item Check:
+        \[
+        \prod_{i \in I} \left( \frac{e(c_{5,i}, g)}{e(\mathcal{H}_1(\rho(i)), c_3) \cdot e(\mathcal{H}_3(c_{1-4}), c_4)} \right)^{\kappa_i \omega_i} \stackrel{?}{=} e(g,g)^\alpha
+        \]
+    \end{enumerate}
+    \item \textbf{Output}: 1 if the equation holds (verification succeeds), otherwise 0.
+\end{itemize}
+
+\subsubsection{Data Decryption: Dec($dk, c$)}
+\begin{itemize}
+    \item \textbf{Input}: Decryption key $dk$, ciphertext $c$.
+    \item \textbf{Process}:
+    \begin{enumerate}
+        \item Define $J = \{ j \mid j \in [\ell_\mathbb{N}], \pi(j) \in \mathcal{R} \text{ or } \pi(j) = \text{availability} \}$.
+        \item Find $\{\eta_j\}_{j \in J}$ such that $\sum_{j \in J} \eta_j \mathbb{N}_j = (1, 0, \ldots, 0)$.
+        \item Compute:
+        \[
+        m = c_0 \cdot \prod_{j \in J} \left( \frac{e(dk_{2,j}, c_{2,j})}{e(dk_{1,j}, c_1)} \right)^{\eta_j}
+        \]
+        \item If decryption fails (e.g., result is not a valid message), return "Cannot decrypt".
+    \end{enumerate}
+    \item \textbf{Output}: Message $m$ if successful, otherwise "Cannot decrypt".
+\end{itemize}
+
+\subsubsection{Deletion Request: DelRequest($\text{DrugID}$)}
+\begin{itemize}
+    \item \textbf{Input}: Unique drug identifier $\text{DrugID}$.
+    \item \textbf{Process}:
+    \begin{enumerate}
+        \item Retrieve the sender attribute set $\mathcal{S}$ and receiver attribute set $\mathcal{R}$ associated with $\text{DrugID}$ from the manufacturer's internal records.
+        \item Construct the deletion request $DR = (\text{DrugID}, \text{availability}, \text{available}, \text{unavailable})$ to revoke the $\text{availability}$ attribute in $\mathcal{S}$.
+        \item Generate the revocation reason $\text{reason}$.
+    \end{enumerate}
+    \item \textbf{Output}: Deletion request $DR$.
+    \item \textbf{Fabric Interaction}:
+    \begin{itemize}
+        \item Call \texttt{RecordPublicEvent$(drugID, batchNumber,\\ "Access Revoked")$} on Main Channel with parameters \texttt{drugID} (drug identifier), \texttt{batchNumber} (production batch), \texttt{eventType} ("Access Revoked").
+        \item Call \texttt{RecordSensitiveData$(drugID, \text{reason})$} on "ManufacturerRegulatorCollection" with parameters \texttt{drugID} (drug identifier), \text{reason} (the revocation reason).
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Re-Encryption Key Generation: ReKeyGen($DR, msk$)}
+\begin{itemize}
+    \item \textbf{Input}: Deletion request $DR$, master secret key $msk$.
+    \item \textbf{Process}:
+    \begin{enumerate}
+        \item Randomly select $s_{\text{avail}}' \in \mathbb{Z}_p$.
+        \item Compute:
+        \[
+        ck_{\text{avail}} = \frac{s_{\text{avail}}'}{s_{\text{avail}}}
+        \]
+        \item Update $s_{\text{avail}}$ to $s_{\text{avail}}'$ in $msk$ and $t_{\text{avail}}$ to $t_{\text{avail}}'$ in $mpk$
+    \end{enumerate}
+    \item \textbf{Output}:
+    \[
+    rk = (fname, \text{availability}, ck_{\text{avail}})
+    \]
+\end{itemize}
+
+\subsubsection{Re-Encryption: ReEncrypt($c, rk$)}
+\begin{itemize}
+    \item \textbf{Input}: Ciphertext $c$, re-encryption key $rk$.
+    \item \textbf{Process}:
+    \begin{enumerate}
+        \item Compute:
+        $$
+        c_{2,\text{avail}}' = (c_{2,\text{avail}})^{ck_{\text{avail}}} \\
+        =  (t_{\text{avail}}^s)^{\frac{s_{\text{avail}}'}{s_{\text{avail}}}} = g^{s_{\text{avail}}' s} = t_{\text{avail}}'^s
+        $$
+        \item Update ciphertext $c$ to $c'$ by replacing $c_{2,\text{avail}}$ with $c_{2,\text{avail}}'$.
+        \item Compute $h_{c'} = \mathcal{H}_3(c_{1-4}')$.
+        \item \textbf{Blockchain Interaction}: Append $h_{c'}$ to the revocation event record.
+    \end{enumerate}
+    \item \textbf{Output}: Updated ciphertext $c'$.
+    \item \textbf{Fabric Interaction}:
+    \begin{itemize}
+        \item Call \texttt{RecordPublicEvent$(drugID, batchNumber,\\ "Ciphertext Updated")$} on Main Channel with parameters \texttt{drugID} (drug identifier), \texttt{batchNumber} (production batch), \texttt{eventType} ("Ciphertext Updated").
+        \item Call \texttt{RecordSensitiveData$(drugID, h_{c'}, "")$} on "ManufacturerRegulatorCollection" with parameters \texttt{drugID} (drug identifier), \texttt{dataHash} (updated ciphertext hash $h_{c'}$), \texttt{index} (empty string).
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Revocation Verification: VerifyRevocation($c', rk$)}
+\begin{itemize}
+    \item \textbf{Input}: Updated ciphertext $c'$, re-encryption key $rk$.
+    \item \textbf{Process}:
+    \begin{enumerate}
+        \item Locally compute $c_{2,\text{avail}}' = (c_{2,\text{avail}})^{ck_{\text{avail}}}$.
+        \item Compare with the values in $c'$.
+    \end{enumerate}
+    \item \textbf{Output}: 1 if they match, otherwise 0.
+\end{itemize}
+
+\end{document}

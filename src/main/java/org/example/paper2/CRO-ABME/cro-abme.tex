@@ -1,0 +1,47 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\setlength{\parindent}{1em}
+\usepackage{graphicx}
+\begin{document}
+\title{Certificateless and Revocable Bilateral Access Control for Privacy-Preserving Edge-cloud Computing}
+
+\section{Construction}
+$\mathbf{Setup}(1^\lambda,\mathbb{A}_u).$ On input a security parameter $1^\lambda$ and a universal attribute set $\tilde{\mathbb{A} } _u$ = $( att_1, att_2, \cdots , att_n)$, this algorithm deterines a bilinear map $e:\mathbb{G}\times\mathbb{G}\to\mathbb{G}_T$, where $\mathbb{G}$ denotes cyclic groups of prime order $p$ with generator $g.$ It selects random elements $\alpha,\beta\in\mathbb{Z}_p$ and a cryptographic hash function $H:\mathbb{G}_T\to\{0,1\}^*$ mapping to the message space.
+Next, it selects a random $s_i\in\mathbb{Z}_p$ for each $att_i\in\mathbb{A}_u.$ The algorithm outputs public parameters $PP$ and master secret key $msk$ as:
+$$PP=(\mathbb{G},\mathbb{G}_T,e,g,g^\alpha,g^\beta,H(\cdot),\{g^{s_i}\}_{i=1}^{\mathbb{A}_u}),$$
+$$msk=(\alpha,\beta.\{s_i\}_{i=1}^{\mathbb{A}_u})$$
+
+$\textbf{Register}( id, \sigma ) .$ On input a user identity $id$ and an attribute set $\sigma\subseteq\mathbb{A}_u$, this algorithm fırst authenticates $id$ and $\sigma$ It then generates a unique user identifier $\omega\in\mathbb{Z}_p$ and associates it with $id.$ The algorithm outputs a registration key $rk$ as:
+$$rk=\{g^{s_i\omega}\}_{i=1}^\sigma $$
+It is important to note that the elements in $rk$ maintain the same order as their corresponding attributes in $\mathbb{A}_u.$ For instance, given $\mathbb{A} _u= \{ att_1, att_2, att_3\}$, a valid $rk$ could be $\{att_1,att_3\}$, but not $\{att_3,att_1\}.$ This ordering is crucial fon the scheme's efficiency. For clarity, we denote $rk_\sigma$ and $rk_\rho$ as the registration keys for senders with attribute set $\sigma$ and data users with attribute set $\rho$,respectively.If the user registers as a sender, the algorithm also generates and securely shares a unique symmetric encryption key $\theta_\omega$ with the sender.
+
+$\textbf{EKGen}( msk, \mathbb{S} ) .$ Given the master secret key msk and the sender's policy $\mathbb{S}=\{att_i\}_{i=1}^{|\mathbb{S}|}$, this algorithm first selects $(|\mathbb{S}|-1)$ distinct random values $x_1,x_2,\cdots,x_{|\mathbb{S}|-1}$, where $|\mathbb{S}|$ denotes the size of $\mathbb{S}.$ It then constructs a random Lagrange polynomial function $\mathcal{L}_1(x):$
+$$\mathcal{L}_1(x)=\alpha+a_1x+\cdots+a_{|\mathbb{S}|-1}x^{|\mathbb{S}|-1}$$
+$\begin{aligned}&\mathrm{where~}\mathcal{L}_2(0)=\beta\mathrm{~and~}\{a_i\}_{i=1}^{|\mathbb{R}|^{-1}}\text{ are polynomial coefficients.}\\&\text{Subsequently, it computes }\{y_i=\mathrm{~}\mathcal{L}_2(x_i)\}_{i=1}^{|\mathbb{R}|^{-1}}\mathrm{~and~the~La-}\\&\text{grange basic polynomial }l_i(0)=\prod_{j=1,j\neq i}^{|\mathbb{R}|-1}\frac{-x_j}{x_i-x_j}.\text{ Finally, this}\\&\text{algorithm returns the receiver's decryption key as:}\\&dk_{\mathbb{R}}=\{g^{\frac{y_i\cdot l_i\cdot(0)}{s_i}}\}_{i=1}^{\mathbb{R}}\\&\text{Note that the elements in }dk_{\mathbb{R}}\text{ maintain the same order as their}\\&\text{corresponding attributes in }\mathbb{A}_u.\end{aligned}$
+
+$\begin{aligned}\mathbf{PKGen}(rk_\rho,dk_\mathbb{R}).&\text{ Given the receiver's registration key}\\rk_\rho\mathrm{~and~}dk_\mathbb{R},\text{this algorithm selects a random element }x\in\mathbb{Z}_p\end{aligned}$
+as the proxy secret key $psk.$ It then computes the proxy public key $ppk$:
+$$\{ppk_{1,i}=dk_{\mathbb{R},i}^x\}_{i=1}^\mathbb{R},\quad\{ppk_{2,i}=rk_{\rho,i}^x\}_{i=1}^\rho,\quad ppk_3=g^x$$
+It returns the ppk and the $psk.$
+
+$\mathbf{Enc}(rk_\sigma,ek_{\mathbb{S}},\theta_\omega,m).$ Given $rk_\sigma,ek_\mathbb{S}$, and a message $m$, this algorithm selects four random elements $r_1,r_2,r_3,r_4\in\mathbb{Z}_p.$ It then computes:
+$$\begin{aligned}&\{R_i=g^{r_i}\}_{i=1}^4,\\&c_0=\mathbf{SEnc}(m\oplus H(e(R_1,R_3))\oplus H(e(R_2,R_4)),\theta_\omega),\\&\{c_{1,i}=rk_{\sigma,i}^{r_1}\}_{i=1}^\sigma,\quad\{c_{2,i}=ek_{\mathbb{S},i}^{r_2}\}_{i=1}^\mathbb{S},\\&c_3=e(R_1,R_3)\cdot e(R_1,g^\beta),\quad c_4=e(R_2,R_4)\cdot e(R_2,g^\alpha),\\&c_5=\frac{(g^\alpha)^{r_2}}{(g^\beta)^{r_1}}=g^{\alpha r_2-\beta r_1}.\end{aligned}$$
+where $\textbf{SEnc}( m, \theta )$ denotes a symmetric encryption with key $\theta .$ The algorithm returns the ciphertext
+$$C = (c_0,\{c_{1,i}\}_{i=1}^\sigma,\{c_{2,i}\}_{i=1}^\mathbb{S},c_3,c_4,c_5).$$
+
+$\textbf{Match}( C, ppk) .$ Given the ciphertext $C$ and the proxy public key $ppk$, this algorithm fırst removes the sender's unique identifrer $\omega_s$ and the receiver's unique identifier $\omega_r$ by computing $\{c_{1,i}^{\prime}=c_{1,i}^{\frac{1}{\omega_s}}\}_{i=1}^{\sigma}\mathrm{and}\{c_{2,i}^{\prime}=c_{2,i}^{\frac{1}{\omega_r}}\}_{i=1}^{\mathbb{S}}$. It then constructs sequences $\mathbb{S}_j$ and $\mathbb{R}_j$ by selecting $|\mathbb{S}|$ and $|\mathbb{R}|$ elements from $\{ppk_{2,i}\}_{i=1}^\rho$ and $\{c_{1,i}\}_{i=1}^\sigma$, respectively. It is important to note that the elements in $\mathbb{S}_j$ and $\mathbb{R}_j$ maintain the same order as in their original sequences. The algorithm verifes the following equation:
+$\frac{\prod_{i=1}^{\mathbb{S}_j}e(c_{2,i}^{\prime},ppk_{2,i})}{\prod_{i=1}^{\mathbb{R}_j}e(c_{1,i}^{\prime},ppk_{1,i})}\overset{?}{\operatorname*{\operatorname*{=}}}e(ppk_3,c_5)$
+The matching succeeds when there exists an element combination from $\left\{ppk_{2,i}\right\}_{i=1}^\rho$ and $\{c_{1,i}^\prime\}_{i=1}^\sigma$ satisfying the equation, indicating that the sender and receiver match with $(\mathbb{R}\subseteq\sigma)\cap(\mathbb{S}\subseteq\rho)$. Upon a successful match, the algorithm computes:
+$\begin{aligned}&c_0^{\prime}=\mathbf{SDec}(c_0,\theta_{\omega_s})\\&v_{1}=\prod_{i=1}^{\mathbb{S}_j}e(c_{2,i}^{\prime},ppk_{2,i})\\&v_{2}=\prod_{i=1}^{\mathbb{R}_j}e(c_{1,i}^{\prime},ppk_{1,i})\end{aligned}$
+where SDec$( c, \theta )$ denotes symmetric decryption with key $\theta _{\omega _s}.$ The algorithm then returns the pre-decrypted ciphertext $C^\prime=$ $(c_0^{\prime},v_1,v_2,c_3,c_4).$ If no match is found, it returns $\bot.$ Note that the Match algorithm can be executed in parallel on the edge server, enabling simultaneous matching of a ciphertext with multiple receivers.
+
+$\mathbf{Dec}(C^{\prime},psk).\mathrm{~Given~}\mathrm{~the~}C^{\prime}\mathrm{~and~}\mathrm{~the~}psk,\text{ this algorithm}\text{recovers the message }m\mathrm{~as:}m=c_0^{\prime}\oplus H\left(\frac{c_4}{v_1^{\frac{1}{psk}}}\right)\oplus H\left(\frac{c_3}{v_2^{\frac{1}{psk}}}\right)$
+
+$\mathbf{Rev}(id,att_j,att_i).$ This algorithm addresses both user revocation and attribute revocation, requiring cooperation between the KA and the edge server.
+\textbf{User Revocation.} On input a user identity $id$, this function generates a new identifer $\omega_{new}\in\mathbb{Z}_p$ and replace $\omega_{old}.$ It then computes and returns a new registration key $rk_{new}=rk^{\frac{\omega_{new}}{\omega_{old}}}$ to the user. Note that if the user is removed from the system, the edge server directly deletes the associated $\omega$ and returns null.
+\textbf{Attribute Revocation.} On input a new attribute $att_j$, this function randomly selects $s_j\in\mathbb{Z}_p$ and generate an update key $UK=s_j/s_i$, where $s_i$ is the secret of the old attribute $att_i.$ It then updates the relevant encryption key $ek_{\mathbb{S},j}=ek_{\mathbb{S},i}^{UK}$ and decryption key $dk_\mathbb{R},j=dk_{\mathbb{R},i}^{UK}$, distributing them to the affected senders and receivers. With the $UK$, the edge server updates the related registration $\ker rk_{\sigma,j}=rk_{\sigma,i}^{UK}$ and sends it to the relevant users. The edge server also updates the associated proxy public key $(ppk_{1,j}=ppk_{1,i}^{\frac1{UK}},ppk_{2,j}=ppk_{2,i}^{UK})$ and the corresponding ciphertext components $( c_{1, j}= c_{1, i}^{UK}, c_{2, j}= c_{2, i}^{UK}) .$ Note that the function is capable of updating a batch of attributes simultaneously.
+
+\end{document}
