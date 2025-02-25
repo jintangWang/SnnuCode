@@ -241,7 +241,8 @@ public class Ours {
         Map<String, Element> C2 = new HashMap<>();
         for (String att : R) {
             if (!att.equals("availability")) {
-                C2.put(att, H2.apply(att).powZn(s).getImmutable());
+                Element h_i_attr = H2.apply(att);
+                C2.put(att, h_i_attr.powZn(s).getImmutable());
             }
         }
         Element C2_avail = t_avail.powZn(s).getImmutable();
@@ -259,12 +260,20 @@ public class Ours {
         
         // Sender attribute components
         Map<String, Element> C5 = new HashMap<>();
+        
+        // Make sure all attributes in Sprime are included in C5
         for (String att : Sprime) {
             if (!att.equals("availability")) {
-                Element ek1_i = ek.ek1.get(att);
-                Element h1_r_prime = H1.apply(att).powZn(r_prime);
-                Element h3_tau = H3.apply(c14.getBytes()).powZn(tau);
-                C5.put(att, ek1_i.mul(h1_r_prime).mul(h3_tau).getImmutable());
+                Element h1_att = H1.apply(att);
+                Element h3_c14 = H3.apply(c14.getBytes());
+                
+                // Check if attribute exists in ek.S (the sender's attribute set)
+                if (ek.S.contains(att)) {
+                    Element ek1_i = ek.ek1.get(att);
+                    C5.put(att, ek1_i.mul(h1_att.powZn(r_prime)).mul(h3_c14.powZn(tau)).getImmutable());
+                } else {
+                    System.out.println("Warning: Attribute " + att + " not found in sender's attribute set");
+                }
             }
         }
         
@@ -350,54 +359,63 @@ public class Ours {
 
 
     public static boolean Verify(int[][] M, String[] rho, Ciphertext ct) {
-        // 添加参数验证
+        // 参数验证
         if (M == null || rho == null || ct == null || ct.C5 == null || ct.S == null) {
             System.out.println("Invalid input parameters in Verify");
             return false;
         }
 
-        // 生成随机向量 x = (1, x2, ..., xn)
-        Element[] x = new Element[M[0].length];
-        x[0] = pairing.getZr().newOneElement().getImmutable();
-        for(int i = 1; i < M[0].length; i++) {
-            x[i] = pairing.getZr().newRandomElement().getImmutable();
-        }
-        
-        // 计算 κ = M * x
-        Element[] kappa = new Element[M.length];
-        for(int i = 0; i < M.length; i++) {
-            kappa[i] = pairing.getZr().newZeroElement();
-            for(int j = 0; j < M[0].length; j++) {
-                Element mij = pairing.getZr().newElement(M[i][j]);
-                kappa[i] = kappa[i].add(mij.mul(x[j]));
-            }
-            kappa[i] = kappa[i].getImmutable();
-        }
-        
-        // 找到满足属性的行索引集合 I
-        List<Integer> I = new ArrayList<>();
-        Map<Integer, Integer> indexMap = new HashMap<>(); // 添加映射以跟踪索引
-        int c5Index = 0;
-        for(int i = 0; i < M.length; i++) {
-            if(ct.S.contains(rho[i])) {
-                I.add(i);
-                indexMap.put(i, c5Index++);
-            }
-        }
-        
-        if (I.isEmpty()) {
-            System.out.println("No matching attributes found");
-            return false;
-        }
-
-        // 求解系数 {ωi} 使得 Σ ωi * Mi = (1,0,...,0)
-        Element[] omega = solveCoefficients(M, I);
-        if(omega == null) {
-            System.out.println("Failed to solve coefficients");
-            return false;
-        }
-        
         try {
+            // 生成随机向量 x = (1, x2, ..., xn)
+            Element[] x = new Element[M[0].length];
+            x[0] = pairing.getZr().newOneElement().getImmutable();
+            for(int i = 1; i < M[0].length; i++) {
+                x[i] = pairing.getZr().newRandomElement().getImmutable();
+            }
+            
+            // 计算 κ = M * x
+            Element[] kappa = new Element[M.length];
+            for(int i = 0; i < M.length; i++) {
+                kappa[i] = pairing.getZr().newZeroElement();
+                for(int j = 0; j < M[0].length; j++) {
+                    Element mij = pairing.getZr().newElement(M[i][j]);
+                    kappa[i] = kappa[i].add(mij.mul(x[j]));
+                }
+                kappa[i] = kappa[i].getImmutable();
+            }
+            
+            // 找到满足属性的行索引集合 I
+            List<Integer> I = new ArrayList<>();
+            Map<String, Integer> attrCount = new HashMap<>();
+            
+            for(int i = 0; i < M.length; i++) {
+                String attr = rho[i];
+                if(ct.C5.containsKey(attr)) {
+                    I.add(i);
+                    attrCount.put(attr, attrCount.getOrDefault(attr, 0) + 1);
+                }
+            }
+            
+            if (I.isEmpty()) {
+                System.out.println("No matching attributes found with valid C5 components");
+                return false;
+            }
+            
+            // Print a summary instead of individual warnings
+            int missingCount = M.length - I.size();
+            if (missingCount > 0) {
+                System.out.println("Info: " + missingCount + " out of " + M.length + 
+                                   " policy attributes don't have C5 components. " +
+                                   "Using " + I.size() + " attributes for verification.");
+            }
+
+            // 求解系数
+            Element[] omega = solveCoefficients(M, I);
+            if(omega == null) {
+                System.out.println("Failed to solve coefficients");
+                return false;
+            }
+            
             // 构造验证等式左边
             Element leftSide = pairing.getGT().newOneElement();
             String c14 = ct.C0.toString() + ct.C1.toString();
@@ -406,16 +424,12 @@ public class Ours {
             }
             c14 += ct.C2_avail.toString() + ct.C3.toString() + ct.C4.toString();
             
-            for(int i : I) {
-                int c5Idx = indexMap.get(i);
-                if (c5Idx >= ct.C5.size()) {
-                    System.out.println("Index out of bounds for C5");
-                    continue;
-                }
+            for(int idx : I) {
+                String attr = rho[idx];
+                Element c5i = ct.C5.get(attr);
                 
-                Element c5i = ct.C5.get(rho[i]);
+                // This check should not be necessary now, but keeping it for safety
                 if (c5i == null) {
-                    System.out.println("Null C5 component for attribute: " + rho[i]);
                     continue;
                 }
 
@@ -423,18 +437,19 @@ public class Ours {
                 Element numerator = pairing.pairing(c5i, g);
                 
                 // 分母: e(H1(ρ(i)), c3) * e(H3(c1-4), c4)
-                Element h1_rho = H1.apply(rho[i]);
+                Element h1_rho = H1.apply(attr);
                 Element h3_c14 = H3.apply(c14.getBytes());
                 
                 Element denom1 = pairing.pairing(h1_rho, ct.C3);
                 Element denom2 = pairing.pairing(h3_c14, ct.C4);
                 
                 Element fraction = numerator.div(denom1.mul(denom2));
-                leftSide = leftSide.mul(fraction.powZn(kappa[i].mul(omega[i])));
+                leftSide = leftSide.mul(fraction.powZn(kappa[idx].mul(omega[idx])));
             }
 
             // 检查等式是否成立
-            return leftSide.isEqual(pairing.pairing(g, g).powZn(alpha));
+            Element rightSide = pairing.pairing(g, g).powZn(alpha);
+            return leftSide.isEqual(rightSide);
             
         } catch (Exception e) {
             System.out.println("Exception in Verify: " + e.getMessage());
