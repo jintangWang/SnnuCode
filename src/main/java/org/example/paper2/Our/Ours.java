@@ -271,12 +271,253 @@ public class Ours {
         return new Ciphertext(ek.S, R, C0, C1, C2, C2_avail, C3, C4, C5);
     }
 
-    // Add other necessary classes (EncryptionKey, DecryptionKey, Ciphertext, etc.)
-    // ...similar to paper1/Main.java but adapted for bbac-ar-psc.tex algorithms
+    private static Element[] solveCoefficients(int[][] matrix, List<Integer> validRows) {
+        Pairing pairing = mpk.pairing;
+        int rowCount = validRows.size();
+        int colCount = matrix[0].length;
+        Element[] omega = new Element[matrix.length];
+    
+        // Initialize all coefficients to 0
+        for (int i = 0; i < matrix.length; i++) {
+            omega[i] = pairing.getZr().newZeroElement();
+        }
+    
+        if (rowCount == 0) {
+            return omega;
+        }
+    
+        BigInteger pBigInt = pairing.getZr().getOrder();
+        int numCols = colCount + 1; // Augmented matrix columns
+        BigInteger[][] augMat = new BigInteger[rowCount][numCols];
+    
+        // Initialize augmented matrix
+        for (int i = 0; i < rowCount; i++) {
+            int origRow = validRows.get(i);
+            for (int j = 0; j < colCount; j++) {
+                augMat[i][j] = BigInteger.valueOf(matrix[origRow][j]).mod(pBigInt);
+            }
+            // Target vector: first row is 1, others 0
+            augMat[i][colCount] = (i == 0) ? BigInteger.ONE : BigInteger.ZERO;
+        }
+    
+        // Gaussian elimination
+        int lead = 0;
+        for (int r = 0; r < rowCount && lead < colCount; r++) {
+            // Find pivot row
+            int i = r;
+            while (i < rowCount && augMat[i][lead].equals(BigInteger.ZERO)) {
+                i++;
+            }
+            if (i == rowCount) {
+                lead++;
+                r--;
+                continue;
+            }
+    
+            // Swap rows
+            BigInteger[] temp = augMat[r];
+            augMat[r] = augMat[i];
+            augMat[i] = temp;
+    
+            // Normalize pivot row
+            BigInteger pivot = augMat[r][lead];
+            BigInteger invPivot = pivot.modInverse(pBigInt);
+            for (int j = lead; j < numCols; j++) {
+                augMat[r][j] = augMat[r][j].multiply(invPivot).mod(pBigInt);
+            }
+    
+            // Eliminate other rows
+            for (i = 0; i < rowCount; i++) {
+                if (i != r) {
+                    BigInteger factor = augMat[i][lead];
+                    for (int j = lead; j < numCols; j++) {
+                        BigInteger val = augMat[i][j].subtract(factor.multiply(augMat[r][j]).mod(pBigInt)).mod(pBigInt);
+                        augMat[i][j] = val;
+                    }
+                }
+            }
+            lead++;
+        }
+    
+        // Back substitution to get coefficients
+        for (int i = 0; i < rowCount; i++) {
+            int origRow = validRows.get(i);
+            omega[origRow] = pairing.getZr().newElement(augMat[i][colCount]).getImmutable();
+        }
+    
+        return omega;
+    }
 
-    // Implement all algorithms from bbac-ar-psc.tex
-    // EKGen, DKGen, Encrypt, Verify, Decrypt, DelRequest, ReKeyGen, ReEncrypt, VerifyRevocation
-    // ...
+
+    public static boolean Verify(int[][] M, String[] rho, Ciphertext ct) {
+        // 添加参数验证
+        if (M == null || rho == null || ct == null || ct.C5 == null || ct.S == null) {
+            System.out.println("Invalid input parameters in Verify");
+            return false;
+        }
+
+        // 生成随机向量 x = (1, x2, ..., xn)
+        Element[] x = new Element[M[0].length];
+        x[0] = pairing.getZr().newOneElement().getImmutable();
+        for(int i = 1; i < M[0].length; i++) {
+            x[i] = pairing.getZr().newRandomElement().getImmutable();
+        }
+        
+        // 计算 κ = M * x
+        Element[] kappa = new Element[M.length];
+        for(int i = 0; i < M.length; i++) {
+            kappa[i] = pairing.getZr().newZeroElement();
+            for(int j = 0; j < M[0].length; j++) {
+                Element mij = pairing.getZr().newElement(M[i][j]);
+                kappa[i] = kappa[i].add(mij.mul(x[j]));
+            }
+            kappa[i] = kappa[i].getImmutable();
+        }
+        
+        // 找到满足属性的行索引集合 I
+        List<Integer> I = new ArrayList<>();
+        Map<Integer, Integer> indexMap = new HashMap<>(); // 添加映射以跟踪索引
+        int c5Index = 0;
+        for(int i = 0; i < M.length; i++) {
+            if(ct.S.contains(rho[i])) {
+                I.add(i);
+                indexMap.put(i, c5Index++);
+            }
+        }
+        
+        if (I.isEmpty()) {
+            System.out.println("No matching attributes found");
+            return false;
+        }
+
+        // 求解系数 {ωi} 使得 Σ ωi * Mi = (1,0,...,0)
+        Element[] omega = solveCoefficients(M, I);
+        if(omega == null) {
+            System.out.println("Failed to solve coefficients");
+            return false;
+        }
+        
+        try {
+            // 构造验证等式左边
+            Element leftSide = pairing.getGT().newOneElement();
+            String c14 = ct.C0.toString() + ct.C1.toString();
+            for(Element c2 : ct.C2.values()) {
+                c14 += c2.toString();
+            }
+            c14 += ct.C2_avail.toString() + ct.C3.toString() + ct.C4.toString();
+            
+            for(int i : I) {
+                int c5Idx = indexMap.get(i);
+                if (c5Idx >= ct.C5.size()) {
+                    System.out.println("Index out of bounds for C5");
+                    continue;
+                }
+                
+                Element c5i = ct.C5.get(rho[i]);
+                if (c5i == null) {
+                    System.out.println("Null C5 component for attribute: " + rho[i]);
+                    continue;
+                }
+
+                // 分子: e(c5,i, g)
+                Element numerator = pairing.pairing(c5i, g);
+                
+                // 分母: e(H1(ρ(i)), c3) * e(H3(c1-4), c4)
+                Element h1_rho = H1.apply(rho[i]);
+                Element h3_c14 = H3.apply(c14.getBytes());
+                
+                Element denom1 = pairing.pairing(h1_rho, ct.C3);
+                Element denom2 = pairing.pairing(h3_c14, ct.C4);
+                
+                Element fraction = numerator.div(denom1.mul(denom2));
+                leftSide = leftSide.mul(fraction.powZn(kappa[i].mul(omega[i])));
+            }
+
+            // 检查等式是否成立
+            return leftSide.isEqual(pairing.pairing(g, g).powZn(alpha));
+            
+        } catch (Exception e) {
+            System.out.println("Exception in Verify: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static Element Decrypt(DecryptionKey dk, Ciphertext ct) {
+        // 找到满足接收者属性的行索引集合 J
+        List<Integer> J = new ArrayList<>();
+        for(int j = 0; j < dk.pi.length; j++) {
+            if(ct.R.contains(dk.pi[j]) || dk.pi[j].equals("availability")) {
+                J.add(j);
+            }
+        }
+        
+        // 求解系数 {ηj} 使得 Σ ηj * Nj = (1,0,...,0)
+        Element[] eta = solveCoefficients(dk.N, J);
+        if(eta == null) return null;
+        
+        // 分部计算并组合
+        int idx = 0;
+        Element denominator = pairing.getGT().newOneElement();
+        for(int j : J) {
+            Element numerator = pairing.pairing(dk.dk2.get(j), 
+                dk.pi[j].equals("availability") ? ct.C2_avail : ct.C2.get(dk.pi[j]));
+            Element denom = pairing.pairing(dk.dk1.get(j), ct.C1);
+            denominator = denominator.mul(numerator.div(denom).powZn(eta[idx]));
+            idx++;
+        }
+        
+        return ct.C0.div(denominator);
+    }
+
+    public static class DeletionRequest {
+        public String drugID;
+        public String reason;
+        
+        public DeletionRequest(String drugID, String reason) {
+            this.drugID = drugID;
+            this.reason = reason;
+        }
+    }
+
+    public static DeletionRequest DelRequest(String drugID) {
+        // 生成删除请求
+        String reason = "Drug batch " + drugID + " needs to be revoked";
+        return new DeletionRequest(drugID, reason);
+    }
+
+    public static Element ReKeyGen(DeletionRequest dr, MSK msk) {
+        // 生成新的s_avail值
+        Element s_avail_new = pairing.getZr().newRandomElement().getImmutable();
+        
+        // 计算重加密密钥
+        Element ck_avail = s_avail_new.div(msk.s_avail).getImmutable();
+        
+        // 更新系统参数
+        s_avail = s_avail_new;
+        t_avail = g.powZn(s_avail_new).getImmutable();
+        
+        return ck_avail;
+    }
+
+    public static Ciphertext ReEncrypt(Ciphertext ct, Element ck_avail) {
+        // 重加密C2_avail部分
+        Element C2_avail_new = ct.C2_avail.powZn(ck_avail).getImmutable();
+        
+        // 创建新的密文对象，仅更新C2_avail
+        return new Ciphertext(
+            ct.S, ct.R, ct.C0, ct.C1, ct.C2, 
+            C2_avail_new, ct.C3, ct.C4, ct.C5
+        );
+    }
+
+    public static boolean VerifyRevocation(Ciphertext ct_new, Element ck_avail) {
+        // 本地计算新的C2_avail值
+        Element C2_avail_computed = ct_new.C2_avail.powZn(ck_avail);
+        
+        // 验证计算值与密文中的值是否相等
+        return C2_avail_computed.isEqual(ct_new.C2_avail);
+    }
 
     public static void main(String[] args) {
         String csvFilePath = "data/bbac_ar_psc_timing_data.csv";
@@ -290,9 +531,9 @@ public class Ours {
             }
             csvWriter.append("\n");
 
-            // Initialize timing data rows
+            // Initialize timing data rows for all algorithms
             List<String[]> dataRows = new ArrayList<>();
-            for (int i = 0; i < 10; i++) {  // 10 algorithms to measure
+            for (int i = 0; i < 10; i++) {
                 String[] row = new String[targetSize - 4 + 2];
                 row[0] = getAlgorithmName(i);
                 dataRows.add(row);
@@ -301,15 +542,89 @@ public class Ours {
             // Test each size
             for (int size = 4; size <= targetSize; size++) {
                 System.out.println("Testing size: " + size);
-                
-                // Measure Setup time
+
+                // Setup timing
                 long startSetup = System.currentTimeMillis();
                 setup(size);
                 long endSetup = System.currentTimeMillis();
                 dataRows.get(0)[size - 4 + 1] = String.valueOf(endSetup - startSetup);
 
-                // Measure other algorithms...
-                // Similar to paper1/Main.java but adapted for bbac-ar-psc.tex algorithms
+                // Generate test attributes and matrix
+                Set<String> senderAttrs = new HashSet<>();
+                for (int i = 0; i < size; i++) {
+                    senderAttrs.add("attr" + i);
+                }
+                int[][] matrix = new int[size][size];
+                String[] phi = new String[size];
+                Random rand = new Random();
+                for (int i = 0; i < size; i++) {
+                    phi[i] = "attr" + i;
+                    for (int j = 0; j < size; j++) {
+                        matrix[i][j] = rand.nextInt(2);
+                    }
+                }
+
+                // EKGen timing
+                long startEKGen = System.currentTimeMillis();
+                EncryptionKey ek = EKGen(msk, senderAttrs);
+                long endEKGen = System.currentTimeMillis();
+                dataRows.get(1)[size - 4 + 1] = String.valueOf(endEKGen - startEKGen);
+
+                // DKGen timing
+                long startDKGen = System.currentTimeMillis();
+                DecryptionKey dk = DKGen(msk, matrix, phi);
+                long endDKGen = System.currentTimeMillis();
+                dataRows.get(2)[size - 4 + 1] = String.valueOf(endDKGen - startDKGen);
+
+                // Encrypt timing
+                Element message = pairing.getGT().newRandomElement().getImmutable();
+                Set<String> receiverAttrs = new HashSet<>(senderAttrs);
+                Set<String> Sprime = new HashSet<>(senderAttrs.stream().limit(size/2).toList());
+                
+                long startEnc = System.currentTimeMillis();
+                Ciphertext ct = Encrypt(ek, receiverAttrs, Sprime, message);
+                long endEnc = System.currentTimeMillis();
+                dataRows.get(3)[size - 4 + 1] = String.valueOf(endEnc - startEnc);
+
+                // Verify timing
+                long startVerify = System.currentTimeMillis();
+                boolean verifyResult = Verify(matrix, phi, ct);
+                long endVerify = System.currentTimeMillis();
+                System.out.println("Verify result: " + verifyResult);
+                dataRows.get(4)[size - 4 + 1] = String.valueOf(endVerify - startVerify);
+
+                // Decrypt timing
+                long startDec = System.currentTimeMillis();
+                Element decMessage = Decrypt(dk, ct);
+                long endDec = System.currentTimeMillis();
+                dataRows.get(5)[size - 4 + 1] = String.valueOf(endDec - startDec);
+
+                // DelRequest timing
+                String drugID = "drug" + size;
+                long startDel = System.currentTimeMillis();
+                DeletionRequest dr = DelRequest(drugID);
+                long endDel = System.currentTimeMillis();
+                dataRows.get(6)[size - 4 + 1] = String.valueOf(endDel - startDel);
+
+                // ReKeyGen timing
+                long startReKeyGen = System.currentTimeMillis();
+                Element reKey = ReKeyGen(dr, msk);
+                long endReKeyGen = System.currentTimeMillis();
+                dataRows.get(7)[size - 4 + 1] = String.valueOf(endReKeyGen - startReKeyGen);
+
+                // ReEncrypt timing
+                long startReEnc = System.currentTimeMillis();
+                Ciphertext newCt = ReEncrypt(ct, reKey);
+                long endReEnc = System.currentTimeMillis();
+                dataRows.get(8)[size - 4 + 1] = String.valueOf(endReEnc - startReEnc);
+
+                // VerifyRevocation timing
+                long startVerifyRev = System.currentTimeMillis();
+                boolean revResult = VerifyRevocation(newCt, reKey);
+                long endVerifyRev = System.currentTimeMillis();
+                dataRows.get(9)[size - 4 + 1] = String.valueOf(endVerifyRev - startVerifyRev);
+
+                System.out.println("Completed size: " + size);
             }
 
             // Write results to CSV
