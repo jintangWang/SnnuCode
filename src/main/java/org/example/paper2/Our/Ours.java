@@ -1,5 +1,0 @@
-package org.example.paper2.Our;
-
-public class Ours {
-
-}
