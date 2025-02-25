@@ -1,8 +1,5 @@
-package org.example.paper1.bac_pe;
+package org.example.paper1.ours;
 
-import it.unisa.dia.gas.jpbc.Element;
-import it.unisa.dia.gas.jpbc.Pairing;
-import it.unisa.dia.gas.plaf.jpbc.pairing.PairingFactory;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
