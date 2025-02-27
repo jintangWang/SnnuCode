@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
 # 设置全局字体
 plt.rcParams.update({
@@ -43,6 +44,9 @@ styles = {
     'KSF-OABE': ('--', '*', 'brown')  # 添加缺失的方案
 }
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+
 # 处理第一组图
 for idx, (file_name, title) in enumerate(files_group1):
     row = idx // 2
@@ -51,7 +55,7 @@ for idx, (file_name, title) in enumerate(files_group1):
     
     try:
         # Read CSV data and print first column for debugging
-        data = pd.read_csv(f'../compared-data/{file_name}')
+        data = pd.read_csv(os.path.join(current_dir, file_name))
         print(f"\nFile: {file_name}")
         print("Schemes in CSV:", data.iloc[:, 0].values)
         
@@ -105,7 +109,7 @@ for idx, (file_name, title) in enumerate(files_group2):
     
     try:
         # Read CSV data and print first column for debugging
-        data = pd.read_csv(f'../compared-data/{file_name}')
+        data = pd.read_csv(os.path.join(current_dir, file_name))
         print(f"\nFile: {file_name}")
         print("Schemes in CSV:", data.iloc[:, 0].values)
         
