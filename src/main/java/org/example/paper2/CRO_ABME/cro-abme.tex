@@ -22,7 +22,7 @@ $\textbf{EKGen}( msk, \mathbb{S} ) .$ Given the master secret key msk and the se
 $$\mathcal{L}_1(x)=\alpha+a_1x+\cdots+a_{|\mathbb{S}|-1}x^{|\mathbb{S}|-1}$$
 $\begin{aligned}&\mathrm{where~}\mathcal{L}_2(0)=\beta\mathrm{~and~}\{a_i\}_{i=1}^{|\mathbb{R}|^{-1}}\text{ are polynomial coefficients.}\\&\text{Subsequently, it computes }\{y_i=\mathrm{~}\mathcal{L}_2(x_i)\}_{i=1}^{|\mathbb{R}|^{-1}}\mathrm{~and~the~La-}\\&\text{grange basic polynomial }l_i(0)=\prod_{j=1,j\neq i}^{|\mathbb{R}|-1}\frac{-x_j}{x_i-x_j}.\text{ Finally, this}\\&\text{algorithm returns the receiver's decryption key as:}\\&dk_{\mathbb{R}}=\{g^{\frac{y_i\cdot l_i\cdot(0)}{s_i}}\}_{i=1}^{\mathbb{R}}\\&\text{Note that the elements in }dk_{\mathbb{R}}\text{ maintain the same order as their}\\&\text{corresponding attributes in }\mathbb{A}_u.\end{aligned}$
 
-$\begin{aligned}\mathbf{PKGen}(rk_\rho,dk_\mathbb{R}).&\text{ Given the receiver's registration key}\\rk_\rho\mathrm{~and~}dk_\mathbb{R},\text{this algorithm selects a random element }x\in\mathbb{Z}_p\end{aligned}$
+$\mathbf{PKGen}(rk_\rho,dk_\mathbb{R})$. Given the receiver's registration key $rk_\rho\mathrm{~and~}dk_\mathbb{R}$, this algorithm selects a random element $x\in\mathbb{Z}_p$
 as the proxy secret key $psk.$ It then computes the proxy public key $ppk$:
 $$\{ppk_{1,i}=dk_{\mathbb{R},i}^x\}_{i=1}^\mathbb{R},\quad\{ppk_{2,i}=rk_{\rho,i}^x\}_{i=1}^\rho,\quad ppk_3=g^x$$
 It returns the ppk and the $psk.$
